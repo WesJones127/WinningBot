@@ -22,6 +22,7 @@ packages/
 bin/
 obj/
 *.suo
+*.user
 
 # =========================
 # Operating System Files
