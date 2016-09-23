@@ -17,6 +17,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# .NET Project
+packages/
+*.suo
+
 # =========================
 # Operating System Files
 # =========================
