@@ -20,6 +20,7 @@ $RECYCLE.BIN/
 # .NET Project
 packages/
 bin/
+obj/
 *.suo
 
 # =========================
