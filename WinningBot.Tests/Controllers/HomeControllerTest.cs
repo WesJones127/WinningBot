@@ -1,7 +1,4 @@
-﻿using System.Web.Mvc;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using WinningBot;
-using WinningBot.Controllers;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace WinningBot.Tests.Controllers
 {
