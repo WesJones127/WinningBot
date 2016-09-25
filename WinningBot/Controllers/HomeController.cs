@@ -25,9 +25,10 @@ namespace WinningBot.Controllers
                 IStrategy strat = new NoOverlap();
                 Game game = JsonConvert.DeserializeObject<Game>(gameText.Data);
                 HelperMethods.parseGrid(ref game);
+
                 List<Move> moves = strat.getMoves(game);
 
-                Debug.WriteLine(JsonConvert.SerializeObject(moves));
+                //Debug.WriteLine(JsonConvert.SerializeObject(moves));
                 return Json(moves);
             }
             catch (Exception ex)

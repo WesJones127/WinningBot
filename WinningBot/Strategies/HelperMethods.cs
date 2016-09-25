@@ -41,6 +41,7 @@ namespace WinningBot.Strategies
         public static List<Coord> GetPoints(Game game, string character)
         {
             List<Coord> playerCoords = new List<Coord>();
+            int playerId = 0;
 
             int index = 0;
             int offset = 0;
@@ -51,7 +52,9 @@ namespace WinningBot.Strategies
 
                 if (index >= 0)
                 {
+                    playerId++;
                     Coord point = ConvertIndexToCoord(index + offset, game.state.rows, game.state.cols);
+                    point.id = playerId;
                     playerCoords.Add(point);
                     gridSearch = gridSearch.Substring(index + 1);
                     offset = index + offset + 1;

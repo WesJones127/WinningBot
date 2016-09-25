@@ -15,6 +15,8 @@ namespace WinningBot.Strategies
 
             List<Move> moves = new List<Move>();
 
+            // leave the try/catch here so we'll at least return an empty list if an error occurs
+            // that way we don't get kicked out of the whole game
             try
             {
                 foreach (Coord coord in game.gridData.playerCoords)

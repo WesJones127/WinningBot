@@ -58,11 +58,13 @@ namespace WinningBot.Models
 
     public class Coord
     {
+        public int? id { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
 
-        public Coord(int x, int y)
+        public Coord(int x, int y, int? id = null)
         {
+            id = id;
             X = x;
             Y = y;
         }
