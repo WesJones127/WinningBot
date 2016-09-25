@@ -42,7 +42,8 @@ namespace WinningBot.Strategies
                 Coord nearestEnergy = findNearestEnergy(energyCoords, coord);
                 Move move = moveTowardsCoord(coord, nearestEnergy, game.state.cols);
                 Coord newPlayerCoord = ConvertIndexToCoord(move.to, game.state.rows, game.state.cols);
-                if (!CoordOccupied(newPlayerCoord, game.state.cols, occupiedCoords))
+
+                if (!CoordOccupied(newPlayerCoord, game.state.cols, occupiedCoords.Concat(energyCoords).ToList()))
                 {
                     moves.Add(move);
                     occupiedCoords.RemoveAll(c=>c.X == coord.X && c.Y == coord.Y);
