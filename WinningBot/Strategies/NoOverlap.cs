@@ -1,6 +1,8 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using WinningBot.Models;
 
 namespace WinningBot.Strategies
@@ -10,8 +12,10 @@ namespace WinningBot.Strategies
         public List<Move> getMoves(Game game)
         {
             int energy, spawn, enemyenergy, enemySpawn;
-            List<Coord> playerCoords, enemyCoords;
+            List<Coord> playerCoords, enemyCoords, energyCoords;
             List<Move> moves = new List<Move>();
+
+            energyCoords = GetPoints(game, "*");
 
             if (game.player == "r")
             {
@@ -32,52 +36,99 @@ namespace WinningBot.Strategies
                 enemyCoords = GetPoints(game, "r");
             }
 
+            List<Coord> occupiedCoords = playerCoords.ToList();
             foreach (Coord coord in playerCoords)
             {
-                List<Coord> adjacent = GetAdjacentCoords(coord, game, playerCoords);
-                if (adjacent.Count >= 1)
+                Coord nearestEnergy = findNearestEnergy(energyCoords, coord);
+                Move move = moveTowardsCoord(coord, nearestEnergy, game.state.cols);
+                Coord newPlayerCoord = ConvertIndexToCoord(move.to, game.state.rows, game.state.cols);
+                if (!CoordOccupied(newPlayerCoord, game.state.cols, occupiedCoords))
                 {
-                    Random r = new Random();
-                    int rInt = r.Next(0, adjacent.Count);
-                    int from = ConvertCoordToIndex(coord, game.state.cols);
-                    int to = ConvertCoordToIndex(adjacent[rInt], game.state.cols);
-
-                    coord.X = adjacent[rInt].X;
-                    coord.Y = adjacent[rInt].Y;
-                    Move move = new Move(from, to);
                     moves.Add(move);
+                    //todo: possibly remove old playerCoord
+                    occupiedCoords.Add(new Coord(newPlayerCoord.X, newPlayerCoord.Y));
                 }
+                //List<Coord> adjacent = GetAdjacentCoords(coord, game, playerCoords);
+                //if (adjacent.Count >= 1)
+                //{
+                //    Random r = new Random();
+                //    int rInt = r.Next(0, adjacent.Count);
+                //    int from = ConvertCoordToIndex(coord, game.state.cols);
+                //    int to = ConvertCoordToIndex(adjacent[rInt], game.state.cols);
+
+                //    coord.X = adjacent[rInt].X;
+                //    coord.Y = adjacent[rInt].Y;
+                //    Move move = new Move(from, to);
+                //    moves.Add(move);
+                //}
             }
 
             return moves;
         }
 
-        internal List<Coord> GetAdjacentCoords(Coord coord, Game game, List<Coord> takenCoords)
+        internal Coord findNearestEnergy(List<Coord> energyCoords, Coord bot)
         {
-            List<Coord> Coords = new List<Coord>();
-            int X = coord.X;
-            int Y = coord.Y;
+            int fewestMoves = 0;
+            Coord nearestEnergy = null;
 
-            if (X > 0 && !CoordOccupied(X - 1, Y, game.state.cols, takenCoords))
-                Coords.Add(new Coord(X - 1, Y));
+            foreach (Coord energyCoord in energyCoords)
+            {
+                int horizontalMoves = Math.Abs(energyCoord.X - bot.X);
+                int verticalMoves = Math.Abs(energyCoord.Y - bot.Y);
+                int totalMoves = horizontalMoves + verticalMoves;
 
-            if (X < game.state.cols - 2 && !CoordOccupied(X + 1, Y, game.state.cols, takenCoords))
-                Coords.Add(new Coord(X + 1, Y));
+                if (totalMoves < fewestMoves || fewestMoves == 0)
+                {
+                    fewestMoves = totalMoves;
+                    nearestEnergy = energyCoord;
+                }
+            }
 
-            if (Y > 0 && !CoordOccupied(X, Y - 1, game.state.cols, takenCoords))
-                Coords.Add(new Coord(X, Y - 1));
-
-            if (Y < game.state.rows - 2 && !CoordOccupied(X, Y + 1, game.state.cols, takenCoords))
-                Coords.Add(new Coord(X, Y + 1));
-
-            return Coords;
+            return nearestEnergy;
         }
 
-        internal bool CoordOccupied(int X, int Y, int cols, List<Coord> takenCoords)
+        internal Move moveTowardsCoord(Coord from, Coord to, int cols)
         {
-            foreach (Coord takenCoord in takenCoords)
+            Coord newCoord = new Coord(from.X, from.Y);
+
+            if (from.X > to.X)
+                newCoord.X = from.X - 1;
+            else if (from.X < to.X)
+                newCoord.X = from.X + 1;
+            else if (from.Y > to.Y)
+                newCoord.Y = from.Y - 1;
+            else if (from.Y < to.Y)
+                newCoord.Y = from.Y + 1;
+            
+            return new Move(ConvertCoordToIndex(from, cols), ConvertCoordToIndex(newCoord, cols));
+        }
+
+        //internal List<Coord> GetAdjacentCoords(Coord coord, Game game, List<Coord> takenCoords)
+        //{
+        //    List<Coord> Coords = new List<Coord>();
+        //    int X = coord.X;
+        //    int Y = coord.Y;
+
+        //    if (X > 0 && !CoordOccupied(X - 1, Y, game.state.cols, takenCoords))
+        //        Coords.Add(new Coord(X - 1, Y));
+
+        //    if (X < game.state.cols - 2 && !CoordOccupied(X + 1, Y, game.state.cols, takenCoords))
+        //        Coords.Add(new Coord(X + 1, Y));
+
+        //    if (Y > 0 && !CoordOccupied(X, Y - 1, game.state.cols, takenCoords))
+        //        Coords.Add(new Coord(X, Y - 1));
+
+        //    if (Y < game.state.rows - 2 && !CoordOccupied(X, Y + 1, game.state.cols, takenCoords))
+        //        Coords.Add(new Coord(X, Y + 1));
+
+        //    return Coords;
+        //}
+
+        internal bool CoordOccupied(Coord coord, int cols, List<Coord> occupiedCoords)
+        {
+            foreach (Coord takenCoord in occupiedCoords)
             {
-                if (takenCoord.X == X && takenCoord.Y == Y)
+                if (takenCoord.X == coord.X && takenCoord.Y == coord.Y)
                 {
                     Debug.WriteLine("Point taken: " + ConvertCoordToIndex(takenCoord, cols));
                     return true;
@@ -86,5 +137,6 @@ namespace WinningBot.Strategies
 
             return false;
         }
+
     }
 }
