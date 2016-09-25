@@ -45,7 +45,7 @@ namespace WinningBot.Strategies
                 if (!CoordOccupied(newPlayerCoord, game.state.cols, occupiedCoords))
                 {
                     moves.Add(move);
-                    //todo: possibly remove old playerCoord
+                    occupiedCoords.RemoveAll(c=>c.X == coord.X && c.Y == coord.Y);
                     occupiedCoords.Add(new Coord(newPlayerCoord.X, newPlayerCoord.Y));
                 }
                 //List<Coord> adjacent = GetAdjacentCoords(coord, game, playerCoords);
