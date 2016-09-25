@@ -2,6 +2,7 @@
 using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using WinningBot.Models;
 
@@ -43,15 +44,12 @@ namespace WinningBot.Strategies
             foreach (Coord coord in playerCoords)
             {
                 Coord nearestEnergy = findNearestEnergy(energyCoords, coord);
-                Move move = moveTowardsCoord(coord, nearestEnergy, game.state.cols);
+                Move move = moveTowardsCoord(coord, nearestEnergy, game.state.cols, enemyCoordsIncludingPossibleMoves.Concat(occupiedCoords).ToList());
                 Coord newPlayerCoord = ConvertIndexToCoord(move.to, game.state.rows, game.state.cols);
                 
-                if (!CoordOccupied(newPlayerCoord, game.state.cols, enemyCoordsIncludingPossibleMoves.Concat(occupiedCoords).ToList()))
-                {
                     moves.Add(move);
                     occupiedCoords.RemoveAll(c=>c.X == coord.X && c.Y == coord.Y);
                     occupiedCoords.Add(new Coord(newPlayerCoord.X, newPlayerCoord.Y));
-                }
             }
 
             return moves;
@@ -78,17 +76,17 @@ namespace WinningBot.Strategies
             return nearestEnergy;
         }
 
-        internal Move moveTowardsCoord(Coord from, Coord to, int cols)
+        internal Move moveTowardsCoord(Coord from, Coord to, int cols, List<Coord> occupiedCoords)
         {
             Coord newCoord = new Coord(from.X, from.Y);
-
-            if (from.X > to.X)
+            
+            if (from.X > to.X && !occupiedCoords.Exists(c => c.X == from.X - 1 && c.Y == newCoord.Y))
                 newCoord.X = from.X - 1;
-            else if (from.X < to.X)
+            else if (from.X < to.X && !occupiedCoords.Exists(c => c.X == from.X + 1 && c.Y == newCoord.Y))
                 newCoord.X = from.X + 1;
-            else if (from.Y > to.Y)
+            else if (from.Y > to.Y && !occupiedCoords.Exists(c => c.X == newCoord.X && c.Y == from.Y - 1))
                 newCoord.Y = from.Y - 1;
-            else if (from.Y < to.Y)
+            else if (from.Y < to.Y && !occupiedCoords.Exists(c => c.X == newCoord.X && c.Y == from.Y + 1))
                 newCoord.Y = from.Y + 1;
             
             return new Move(ConvertCoordToIndex(from, cols), ConvertCoordToIndex(newCoord, cols));
