@@ -1,4 +1,6 @@
-﻿namespace WinningBot.Models
+﻿using System.Collections.Generic;
+
+namespace WinningBot.Models
 {
     public class JsonData
     {
@@ -8,8 +10,13 @@
     {
         public State state { get; set; }
         public string player { get; set; }
-    }
+        public GridData gridData { get; set; }
 
+        public Game()
+        {
+            gridData = new GridData();
+        }
+    }
     public class State
     {
         public int rows { get; set; }
@@ -19,13 +26,34 @@
         public string grid { get; set; }
         public int maxTurns { get; set; }
         public int turnsElapsed { get; set; }
-        
-    }
 
+    }
     public class Player
     {
         public int energy { get; set; }
         public int spawn { get; set; }
+    }
+
+    public class GridData
+    {
+        public int energy { get; set; }
+        public int spawn { get; set; }
+        public int enemyEnergy { get; set; }
+        public int enemySpawn { get; set; }
+        public List<Coord> playerCoords { get; set; }
+        public List<Coord> enemyCoords { get; set; }
+        public List<Coord> energyCoords { get; set; }
+        public List<Coord> occupiedCoords { get; set; }
+        public List<Coord> enemyCoordsIncludingPossibleMoves { get; set; }
+
+        public GridData()
+        {
+            playerCoords = new List<Coord>();
+            enemyCoords = new List<Coord>();
+            energyCoords = new List<Coord>();
+            occupiedCoords = new List<Coord>();
+            enemyCoordsIncludingPossibleMoves = new List<Coord>();
+        }
     }
 
     public class Coord
@@ -39,7 +67,6 @@
             Y = y;
         }
     }
-
     public class Move
     {
         public int from { get; set; }
