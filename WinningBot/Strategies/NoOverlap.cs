@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Web.Helpers;
 using WinningBot.Models;
 
 namespace WinningBot.Strategies
@@ -16,44 +17,49 @@ namespace WinningBot.Strategies
             List<Coord> myPlayerCoords = new List<Coord>(game.gridData.playerCoords);
             List<Coord> coordsToAvoid = new List<Coord>(game.gridData.enemyCoordsIncludingPossibleMoves.Concat(myPlayerCoords));
 
+            Util.Log(game.player, " myPlayerCoords count = " + myPlayerCoords.Count);
+            Util.Log(game.player, "coordsToAvoid count = " + coordsToAvoid.Count);
+
             if (myPlayerCoords.Count >= 5)
             {
-                moves.AddRange(GuardSpawnPoint(game, ref myPlayerCoords, ref coordsToAvoid));
+                moves.AddRange(GuardSpawnPoint(game, myPlayerCoords, coordsToAvoid));
             }
+            Util.Log(game.player, "myPlayerCoords count = " + myPlayerCoords.Count);
+            Util.Log(game.player, "coordsToAvoid count = " + coordsToAvoid.Count);
+            Util.Log(game.player, "Guard moves count = " + moves.Count);
+        
 
-            //todo: move newly spawned bots away from Guard Bots
-            foreach (Coord coord in game.gridData.playerCoords)
+            foreach (Coord coord in myPlayerCoords)
             {
                 Coord nearestEnergy = Util.findNearestEnergy(game.gridData.energyCoords, coord);
 
                 if (nearestEnergy != null)
                 {
-                    //todo: probably don't want to use occupiedCoords here
-                    Move move = Util.moveTowardsCoord(coord,
-                        nearestEnergy,
-                        game.state.cols,
-                        game.gridData.enemyCoordsIncludingPossibleMoves.Concat(game.gridData.occupiedCoords)
-                            .ToList());
-                    Coord newPlayerCoord = Util.ConvertIndexToCoord(move.to, game.state.rows,
-                        game.state.cols);
+                    Move move = Util.moveTowardsCoord(coord, nearestEnergy, game.state.cols, coordsToAvoid.ToList());
 
-                    moves.Add(move);
-                    game.gridData.occupiedCoords.RemoveAll(c => c.X == coord.X && c.Y == coord.Y);
-                    game.gridData.occupiedCoords.Add(new Coord(newPlayerCoord.X, newPlayerCoord.Y));
+                    if (move != null)
+                    {
+                        Coord newPlayerCoord = new Coord(move, true, game.state.cols);
+
+                        moves.Add(move);
+                        coordsToAvoid.RemoveAll(c => c.EqualTo(coord));
+                        coordsToAvoid.Add(newPlayerCoord.Copy());
+                    }
                 }
             }
 
             return moves;
         }
 
-        private List<Move> GuardSpawnPoint(Game game, ref List<Coord> playerCoords, ref List<Coord> coordsToAvoid)
+        private List<Move> GuardSpawnPoint(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
         {
+            Util.Log(game.player, "beginning GuardSpawnPoint");
             List<Move> moves = new List<Move>();
 
-            Coord guardSpot1 = 
+            Coord guardSpot1 =
                 Util.ConvertIndexToCoord(
                 (game.player == "r") ? game.state.p1.spawn + game.state.cols : game.state.p2.spawn - game.state.cols,
-                game.state.rows, 
+                game.state.rows,
                 game.state.cols);
 
             Coord guardSpot2 =
@@ -62,27 +68,53 @@ namespace WinningBot.Strategies
                 game.state.rows,
                 game.state.cols);
 
-            // this does specifically check if a bot is already on the guard spot, but I think it will work that way by finding the closest bot
+            Util.Log(game.player, "guardSpot1/guardSpot2 = " + guardSpot1.Print() + "/" + guardSpot2.Print());
+
             Coord guardBot1 = Util.findNearestBot(playerCoords, guardSpot1);
             if (guardBot1 != null)
             {
-                moves.Add(Util.moveTowardsCoord(guardBot1, guardSpot1, game.state.cols, coordsToAvoid));
-                playerCoords.RemoveAll(c => c.X == guardBot1.X && c.Y == guardBot1.Y);
-                //playerCoords.Add(new Coord(guardBot1.X, guardBot1.Y));
-                coordsToAvoid.RemoveAll(c => c.X == guardBot1.X && c.Y == guardBot1.Y);
-                coordsToAvoid.Add(new Coord(guardBot1.X, guardBot1.Y));
+                Move move = Util.moveTowardsCoord(guardBot1, guardSpot1, game.state.cols, coordsToAvoid);
+                if (move != null)
+                {
+                    Debug.WriteLine(move.Print());
+                    moves.Add(move);
+
+                    // remove the From location from the list of spots to avoid
+                    coordsToAvoid.RemoveAll(c => c.EqualTo(new Coord(move, false, game.state.cols)));
+                    // add the To location to the list of spots to avoid
+                    coordsToAvoid.Add(new Coord(move, true, game.state.cols));
+                }
+
+                // remove the chosen guard bot from the list of bots to move
+                playerCoords.RemoveAll(c => c.EqualTo(guardBot1));
             }
 
             Coord guardBot2 = Util.findNearestBot(playerCoords, guardSpot2);
             if (guardBot2 != null)
             {
-                moves.Add(Util.moveTowardsCoord(guardBot2, guardSpot2, game.state.cols, coordsToAvoid));
-                playerCoords.RemoveAll(c => c.X == guardBot2.X && c.Y == guardBot2.Y);
-                //playerCoords.Add(new Coord(guardBot2.X, guardBot2.Y));
-                coordsToAvoid.RemoveAll(c => c.X == guardBot2.X && c.Y == guardBot2.Y);
-                coordsToAvoid.Add(new Coord(guardBot2.X, guardBot2.Y));
+                Move move = Util.moveTowardsCoord(guardBot2, guardSpot2, game.state.cols, coordsToAvoid);
+                if (move != null)
+                {
+                    Debug.WriteLine(move.Print());
+                    moves.Add(move);
+
+                    // remove the From location from the list of spots to avoid
+                    coordsToAvoid.RemoveAll(c => c.Equals(new Coord(move, false, game.state.cols)));
+                    // add the To location to the list of spots to avoid
+                    coordsToAvoid.Add(new Coord(move, true, game.state.cols));
+                }
+
+                // remove the chosen guard bot from the list of bots to move
+                playerCoords.RemoveAll(c => c.Equals(guardBot2));
             }
 
+            if (guardBot1 != null)
+                Util.Log(game.player, "guardBot1 = " + guardBot1.Print());
+            if (guardBot2 != null)
+                Util.Log(game.player, "guardBot2 = " + guardSpot2.Print());
+
+
+            Util.Log(game.player, "ending GuardSpawnPoint");
             return moves;
         }
     }

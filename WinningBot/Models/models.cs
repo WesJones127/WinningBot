@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using WinningBot.Strategies;
 
 namespace WinningBot.Models
 {
@@ -68,6 +70,42 @@ namespace WinningBot.Models
             X = x;
             Y = y;
         }
+
+        /// <summary>
+        /// Use boolean to determine which Move variable we want to create the Coord from
+        /// Using just an Int would conflict with the default constructor
+        /// </summary>
+        /// <param name="move"></param>
+        /// <param name="moveToIndex"></param>
+        /// <param name="cols"></param>
+        public Coord(Move move, bool moveToIndex, int cols)
+        {
+            int playerIndex = (moveToIndex) ? move.to : move.from;
+
+            X = playerIndex % cols;
+            Y = playerIndex / cols;
+        }
+
+        public Coord Copy()
+        {
+            return new Coord(X, Y);
+        }
+
+        public bool EqualTo(Coord otherCoord)
+        {
+            return X == otherCoord.X && Y == otherCoord.Y;
+        }
+
+        public int ToIndex(int cols)
+        {
+            double index = cols * Y + X;
+            return Convert.ToInt32(index);
+        }
+
+        public string Print()
+        {
+            return "(" + X + "," + Y + ")";
+        }
     }
     public class Move
     {
@@ -78,6 +116,11 @@ namespace WinningBot.Models
         {
             from = f;
             to = t;
+        }
+
+        public string Print()
+        {
+            return "From " + from + " to " + to;
         }
     }
 }

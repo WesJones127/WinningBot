@@ -28,6 +28,7 @@ namespace WinningBot.Controllers
 
             try
             {
+                Debug.WriteLine("MOVE: " + (game.state.turnsElapsed + 1) + " ----- PLAYER: " + game.player);
                moves = strat.getMoves(game);
             }
             catch (Exception ex)

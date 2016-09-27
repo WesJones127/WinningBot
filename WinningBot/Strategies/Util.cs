@@ -8,6 +8,15 @@ namespace WinningBot.Strategies
 {
     public static class Util
     {
+        /// <summary>
+        /// Copy Text: Util.Log(game.player, );
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="text"></param>
+        public static void Log(string player, string text)
+        {
+            Debug.WriteLine(player.ToUpper() + " : " + text);
+        }
         public static void parseGrid(ref Game game)
         {
             game.gridData.energyCoords = GetPoints(game, "*");
@@ -34,7 +43,7 @@ namespace WinningBot.Strategies
             game.gridData.occupiedCoords = new List<Coord>(game.gridData.playerCoords);
             Game gameCopy = game;
             game.gridData.enemyCoordsIncludingPossibleMoves =
-                gameCopy.gridData.enemyCoords.SelectMany(ec => 
+                gameCopy.gridData.enemyCoords.SelectMany(ec =>
                     GetAdjacentCoords(ec, gameCopy)).ToList().
                     Concat(gameCopy.gridData.enemyCoords)
                     .ToList();
@@ -106,10 +115,10 @@ namespace WinningBot.Strategies
         {
             foreach (Coord takenCoord in occupiedCoords)
             {
-                if (takenCoord.X == coord.X && takenCoord.Y == coord.Y)
+                if (takenCoord.EqualTo(coord))
                 {
                     //Debug.WriteLine("Point taken: " + ConvertCoordToIndex(takenCoord, cols));
-                    Debug.WriteLine("Coord taken: " + takenCoord.X + "," + takenCoord.Y);
+                   // Debug.WriteLine("Coord taken: " + takenCoord.X + "," + takenCoord.Y);
                     return true;
                 }
             }
@@ -140,36 +149,42 @@ namespace WinningBot.Strategies
 
         public static Move moveTowardsCoord(Coord from, Coord to, int cols, List<Coord> occupiedCoords)
         {
-            Coord newCoord = new Coord(from.X, from.Y);
+            if (from.EqualTo(to))
+                return null;
 
-            if (from.X > to.X && !occupiedCoords.Exists(c => c.X == from.X - 1 && c.Y == newCoord.Y))
-                newCoord.X = from.X - 1;
-            else if (from.X < to.X && !occupiedCoords.Exists(c => c.X == from.X + 1 && c.Y == newCoord.Y))
-                newCoord.X = from.X + 1;
-            else if (from.Y > to.Y && !occupiedCoords.Exists(c => c.X == newCoord.X && c.Y == from.Y - 1))
-                newCoord.Y = from.Y - 1;
-            else if (from.Y < to.Y && !occupiedCoords.Exists(c => c.X == newCoord.X && c.Y == from.Y + 1))
-                newCoord.Y = from.Y + 1;
+            List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
+            
+            if (!adjacentCoords.Any())
+                return null;
 
-            return new Move(Util.ConvertCoordToIndex(from, cols), Util.ConvertCoordToIndex(newCoord, cols));
+            if (from.X > to.X)
+                adjacentCoords.Sort((c1, c2) => c1.X.CompareTo(c2.X));
+            else if (from.X < to.X)
+                adjacentCoords.Sort((c1, c2) => c2.X.CompareTo(c1.X));
+            else if (from.Y > to.Y)
+                adjacentCoords.Sort((c1, c2) => c1.Y.CompareTo(c2.Y));
+            else if (from.Y < to.Y)
+                adjacentCoords.Sort((c1, c2) => c2.Y.CompareTo(c1.Y));
+
+            return new Move(ConvertCoordToIndex(from, cols), ConvertCoordToIndex(adjacentCoords.First(), cols));
         }
 
-        public static List<Coord> GetAdjacentCoords(Coord coord, Game game, List<Coord> takenCoords)
+        public static List<Coord> GetAdjacentCoords(Coord coord, int cols, List<Coord> takenCoords)
         {
             List<Coord> Coords = new List<Coord>();
             int X = coord.X;
             int Y = coord.Y;
 
-            if (X > 0 && !CoordOccupied(new Coord(X - 1, Y), game.state.cols, takenCoords))
+            if (X > 0 && !CoordOccupied(new Coord(X - 1, Y), cols, takenCoords))
                 Coords.Add(new Coord(X - 1, Y));
 
-            if (X < game.state.cols - 2 && !CoordOccupied(new Coord(X + 1, Y), game.state.cols, takenCoords))
+            if (X < cols - 1 && !CoordOccupied(new Coord(X + 1, Y), cols, takenCoords))
                 Coords.Add(new Coord(X + 1, Y));
 
-            if (Y > 0 && !CoordOccupied(new Coord(X, Y - 1), game.state.cols, takenCoords))
+            if (Y > 0 && !CoordOccupied(new Coord(X, Y - 1), cols, takenCoords))
                 Coords.Add(new Coord(X, Y - 1));
 
-            if (Y < game.state.rows - 2 && !CoordOccupied(new Coord(X, Y + 1), game.state.cols, takenCoords))
+            if (Y < cols - 1 && !CoordOccupied(new Coord(X, Y + 1), cols, takenCoords))
                 Coords.Add(new Coord(X, Y + 1));
 
             return Coords;
@@ -177,7 +192,7 @@ namespace WinningBot.Strategies
 
         public static Coord findNearestBot(List<Coord> bots, Coord destination)
         {
-            int fewestMoves = 0;
+            int? fewestMoves = null;
             Coord nearestBot = null;
 
             foreach (Coord bot in bots)
@@ -186,15 +201,18 @@ namespace WinningBot.Strategies
                 int verticalMoves = Math.Abs(destination.Y - bot.Y);
                 int totalMoves = horizontalMoves + verticalMoves;
 
-                if (totalMoves < fewestMoves || fewestMoves == 0)
+                if (fewestMoves == null || totalMoves < fewestMoves)
                 {
                     fewestMoves = totalMoves;
                     nearestBot = bot;
                 }
             }
 
+            if (nearestBot != null)
+                Debug.WriteLine("Nearest bot to: " + destination.Print() + " = " + nearestBot.Print());
+
             return nearestBot;
-            
+
         }
     }
 }
