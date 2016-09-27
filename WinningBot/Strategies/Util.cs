@@ -17,7 +17,8 @@ namespace WinningBot.Strategies
         {
             Debug.WriteLine(player.ToUpper() + " : " + text);
         }
-        public static void parseGrid(ref Game game)
+
+        public static void ParseGrid(ref Game game)
         {
             game.gridData.energyCoords = GetPoints(game, "*");
 
@@ -110,6 +111,11 @@ namespace WinningBot.Strategies
             return Convert.ToInt32(index);
         }
 
+        public static Coord ToCoord(this int index, int rows, int cols)
+        {
+            return ConvertIndexToCoord(index, rows, cols);
+        }
+
 
         public static bool CoordOccupied(Coord coord, int cols, List<Coord> occupiedCoords)
         {
@@ -118,7 +124,7 @@ namespace WinningBot.Strategies
                 if (takenCoord.EqualTo(coord))
                 {
                     //Debug.WriteLine("Point taken: " + ConvertCoordToIndex(takenCoord, cols));
-                   // Debug.WriteLine("Coord taken: " + takenCoord.X + "," + takenCoord.Y);
+                    // Debug.WriteLine("Coord taken: " + takenCoord.X + "," + takenCoord.Y);
                     return true;
                 }
             }
@@ -126,7 +132,7 @@ namespace WinningBot.Strategies
             return false;
         }
 
-        public static Coord findNearestEnergy(List<Coord> energyCoords, Coord bot)
+        public static Coord FindNearestEnergy(List<Coord> energyCoords, Coord bot)
         {
             int fewestMoves = 0;
             Coord nearestEnergy = null;
@@ -147,13 +153,17 @@ namespace WinningBot.Strategies
             return nearestEnergy;
         }
 
-        public static Move moveTowardsCoord(Coord from, Coord to, int cols, List<Coord> occupiedCoords)
+        public static Move MoveTowardsCoord(Coord from, Coord to, int cols, List<Coord> occupiedCoords, bool bumpExistingBots = false)
         {
             if (from.EqualTo(to))
                 return null;
 
+
+            //todo: avoid moving back to spawn point
+
+
             List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
-            
+
             if (!adjacentCoords.Any())
                 return null;
 
@@ -190,7 +200,7 @@ namespace WinningBot.Strategies
             return Coords;
         }
 
-        public static Coord findNearestBot(List<Coord> bots, Coord destination)
+        public static Coord FindNearestBot(List<Coord> bots, Coord destination)
         {
             int? fewestMoves = null;
             Coord nearestBot = null;
@@ -213,6 +223,23 @@ namespace WinningBot.Strategies
 
             return nearestBot;
 
+        }
+
+        public static Direction Opposite(this Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.UP:
+                    return Direction.DOWN;
+                case Direction.DOWN:
+                    return Direction.UP;
+                case Direction.LEFT:
+                    return Direction.RIGHT;
+                case Direction.RIGHT:
+                    return Direction.LEFT;
+                default:
+                    return Direction.UP;
+            }
         }
     }
 }

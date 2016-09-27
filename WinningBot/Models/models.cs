@@ -102,6 +102,23 @@ namespace WinningBot.Models
             return Convert.ToInt32(index);
         }
 
+        public Coord MoveTo(Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.UP:
+                    return new Coord(X, Y - 1);
+                case Direction.DOWN:
+                    return new Coord(X, Y + 1);
+                case Direction.LEFT:
+                    return new Coord(X - 1, Y);
+                case Direction.RIGHT:
+                    return new Coord(X + 1, Y);
+            }
+
+            throw new Exception("Direction is missing");
+        }
+
         public string Print()
         {
             return "(" + X + "," + Y + ")";
@@ -122,5 +139,13 @@ namespace WinningBot.Models
         {
             return "From " + from + " to " + to;
         }
+    }
+
+    public enum Direction
+    {
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT
     }
 }

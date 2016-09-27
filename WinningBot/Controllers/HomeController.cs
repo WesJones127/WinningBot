@@ -22,7 +22,7 @@ namespace WinningBot.Controllers
         {
             IStrategy strat = new NoOverlap();
             Game game = JsonConvert.DeserializeObject<Game>(gameText.Data);
-            Util.parseGrid(ref game);
+            Util.ParseGrid(ref game);
 
             List<Move> moves = new List<Move>();
 

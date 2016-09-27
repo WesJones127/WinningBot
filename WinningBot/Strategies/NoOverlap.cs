@@ -17,25 +17,26 @@ namespace WinningBot.Strategies
             List<Coord> myPlayerCoords = new List<Coord>(game.gridData.playerCoords);
             List<Coord> coordsToAvoid = new List<Coord>(game.gridData.enemyCoordsIncludingPossibleMoves.Concat(myPlayerCoords));
 
-            Util.Log(game.player, " myPlayerCoords count = " + myPlayerCoords.Count);
-            Util.Log(game.player, "coordsToAvoid count = " + coordsToAvoid.Count);
+            Coord spawnPoint = (game.player == "r") ?
+                game.state.p1.spawn.ToCoord(game.state.rows, game.state.cols) :
+                game.state.p2.spawn.ToCoord(game.state.rows, game.state.cols);
+            Coord spawnedBot = myPlayerCoords.FirstOrDefault(c => c.EqualTo(spawnPoint));
+
+            if (spawnedBot != null)
+                moves.AddRange(MoveNewlySpawnedBot(game, spawnPoint, myPlayerCoords, coordsToAvoid));
 
             if (myPlayerCoords.Count >= 5)
-            {
                 moves.AddRange(GuardSpawnPoint(game, myPlayerCoords, coordsToAvoid));
-            }
-            Util.Log(game.player, "myPlayerCoords count = " + myPlayerCoords.Count);
-            Util.Log(game.player, "coordsToAvoid count = " + coordsToAvoid.Count);
-            Util.Log(game.player, "Guard moves count = " + moves.Count);
-        
+
+
 
             foreach (Coord coord in myPlayerCoords)
             {
-                Coord nearestEnergy = Util.findNearestEnergy(game.gridData.energyCoords, coord);
+                Coord nearestEnergy = Util.FindNearestEnergy(game.gridData.energyCoords, coord);
 
                 if (nearestEnergy != null)
                 {
-                    Move move = Util.moveTowardsCoord(coord, nearestEnergy, game.state.cols, coordsToAvoid.ToList());
+                    Move move = Util.MoveTowardsCoord(coord, nearestEnergy, game.state.cols, coordsToAvoid.ToList());
 
                     if (move != null)
                     {
@@ -53,7 +54,6 @@ namespace WinningBot.Strategies
 
         private List<Move> GuardSpawnPoint(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
         {
-            Util.Log(game.player, "beginning GuardSpawnPoint");
             List<Move> moves = new List<Move>();
 
             Coord guardSpot1 =
@@ -68,12 +68,11 @@ namespace WinningBot.Strategies
                 game.state.rows,
                 game.state.cols);
 
-            Util.Log(game.player, "guardSpot1/guardSpot2 = " + guardSpot1.Print() + "/" + guardSpot2.Print());
 
-            Coord guardBot1 = Util.findNearestBot(playerCoords, guardSpot1);
+            Coord guardBot1 = Util.FindNearestBot(playerCoords, guardSpot1);
             if (guardBot1 != null)
             {
-                Move move = Util.moveTowardsCoord(guardBot1, guardSpot1, game.state.cols, coordsToAvoid);
+                Move move = Util.MoveTowardsCoord(guardBot1, guardSpot1, game.state.cols, coordsToAvoid);
                 if (move != null)
                 {
                     Debug.WriteLine(move.Print());
@@ -89,10 +88,10 @@ namespace WinningBot.Strategies
                 playerCoords.RemoveAll(c => c.EqualTo(guardBot1));
             }
 
-            Coord guardBot2 = Util.findNearestBot(playerCoords, guardSpot2);
+            Coord guardBot2 = Util.FindNearestBot(playerCoords, guardSpot2);
             if (guardBot2 != null)
             {
-                Move move = Util.moveTowardsCoord(guardBot2, guardSpot2, game.state.cols, coordsToAvoid);
+                Move move = Util.MoveTowardsCoord(guardBot2, guardSpot2, game.state.cols, coordsToAvoid);
                 if (move != null)
                 {
                     Debug.WriteLine(move.Print());
@@ -107,14 +106,49 @@ namespace WinningBot.Strategies
                 // remove the chosen guard bot from the list of bots to move
                 playerCoords.RemoveAll(c => c.Equals(guardBot2));
             }
+            if (moves.Count == 0)
+                Util.Log(game.player, "adding 0 moves");
+            return moves;
+        }
 
-            if (guardBot1 != null)
-                Util.Log(game.player, "guardBot1 = " + guardBot1.Print());
-            if (guardBot2 != null)
-                Util.Log(game.player, "guardBot2 = " + guardSpot2.Print());
+        private List<Move> MoveNewlySpawnedBot(Game game, Coord spawnPoint, List<Coord> playerCoords, List<Coord> coordsToAvoid)
+        {
+            List<Move> moves = new List<Move>();
+            Direction direction1 = (spawnPoint.Y > game.state.rows / 2) ? Direction.UP : Direction.DOWN;
+            Direction direction2 = (spawnPoint.Y > game.state.rows / 2) ? Direction.LEFT : Direction.RIGHT;
+            int cols = game.state.cols;
+            Coord desiredSpot = spawnPoint.MoveTo(direction1);
+            List<Coord> occupiedSpots = playerCoords.Concat(coordsToAvoid).ToList();
 
+            if (!Util.CoordOccupied(desiredSpot, cols, occupiedSpots))
+                return new List<Move>()
+                {
+                    new Move(spawnPoint.ToIndex(cols), desiredSpot.ToIndex(cols))
+                };
 
-            Util.Log(game.player, "ending GuardSpawnPoint");
+            desiredSpot = spawnPoint.MoveTo(direction2);
+            if (!Util.CoordOccupied(desiredSpot, cols, occupiedSpots))
+                return new List<Move>()
+                {
+                 new Move(spawnPoint.ToIndex(cols), desiredSpot.ToIndex(cols))
+                };
+
+            desiredSpot = spawnPoint.MoveTo(direction1.Opposite());
+            if (!Util.CoordOccupied(desiredSpot, cols, occupiedSpots))
+                return new List<Move>()
+                {
+                 new Move(spawnPoint.ToIndex(cols), desiredSpot.ToIndex(cols))
+                };
+
+            desiredSpot = spawnPoint.MoveTo(direction2.Opposite());
+            if (!Util.CoordOccupied(desiredSpot, cols, occupiedSpots))
+                return new List<Move>()
+                {
+                 new Move(spawnPoint.ToIndex(cols), desiredSpot.ToIndex(cols))
+                };
+
+            // if we got here, all direct moves are blocked
+            //todo: bump player bot out of the way
             return moves;
         }
     }
