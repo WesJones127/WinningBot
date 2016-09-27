@@ -34,7 +34,10 @@ namespace WinningBot.Strategies
             game.gridData.occupiedCoords = new List<Coord>(game.gridData.playerCoords);
             Game gameCopy = game;
             game.gridData.enemyCoordsIncludingPossibleMoves =
-                gameCopy.gridData.enemyCoords.SelectMany(ec => GetAdjacentCoords(ec, gameCopy)).ToList().Concat(gameCopy.gridData.enemyCoords).ToList();
+                gameCopy.gridData.enemyCoords.SelectMany(ec => 
+                    GetAdjacentCoords(ec, gameCopy)).ToList().
+                    Concat(gameCopy.gridData.enemyCoords)
+                    .ToList();
 
         }
 
@@ -170,6 +173,28 @@ namespace WinningBot.Strategies
                 Coords.Add(new Coord(X, Y + 1));
 
             return Coords;
+        }
+
+        public static Coord findNearestBot(List<Coord> bots, Coord destination)
+        {
+            int fewestMoves = 0;
+            Coord nearestBot = null;
+
+            foreach (Coord bot in bots)
+            {
+                int horizontalMoves = Math.Abs(destination.X - bot.X);
+                int verticalMoves = Math.Abs(destination.Y - bot.Y);
+                int totalMoves = horizontalMoves + verticalMoves;
+
+                if (totalMoves < fewestMoves || fewestMoves == 0)
+                {
+                    fewestMoves = totalMoves;
+                    nearestBot = bot;
+                }
+            }
+
+            return nearestBot;
+            
         }
     }
 }
