@@ -20,22 +20,22 @@ namespace WinningBot.Controllers
         [System.Web.Mvc.HttpPost]
         public JsonResult Index([FromBody] JsonData gameText)
         {
+            IStrategy strat = new NoOverlap();
+            Game game = JsonConvert.DeserializeObject<Game>(gameText.Data);
+            Util.parseGrid(ref game);
+
+            List<Move> moves = new List<Move>();
+
             try
             {
-                IStrategy strat = new NoOverlap();
-                Game game = JsonConvert.DeserializeObject<Game>(gameText.Data);
-                HelperMethods.parseGrid(ref game);
-
-                List<Move> moves = strat.getMoves(game);
-
-                //Debug.WriteLine(JsonConvert.SerializeObject(moves));
-                return Json(moves);
+               moves = strat.getMoves(game);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                return Json(new List<Move>());
             }
+
+            return Json(moves);
         }
     }
 }
