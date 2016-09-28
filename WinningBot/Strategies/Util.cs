@@ -164,11 +164,18 @@ namespace WinningBot.Strategies
             if (from.EqualTo(to))
                 return null;
 
+            int rows = game.state.rows;
+            int cols = game.state.cols;
 
-            //todo: avoid moving back to spawn point
+            // avoid moving back to spawn point
+            Coord spawnPoint = game.gridData.spawn.ToCoord(rows, cols);
+            if (occupiedCoords.FirstOrDefault(c => c.EqualTo(spawnPoint)) == null)
+            {
+                occupiedCoords.Add(spawnPoint);
+            }
 
 
-            List<Coord> adjacentCoords = GetAdjacentCoords(from, game.state.cols, occupiedCoords);
+            List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
 
             if (!adjacentCoords.Any())
                 return null;

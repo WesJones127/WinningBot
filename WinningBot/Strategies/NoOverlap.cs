@@ -14,41 +14,92 @@ namespace WinningBot.Strategies
         List<Move> IStrategy.getMoves(Game game)
         {
             List<Move> moves = new List<Move>();
+
+            // myPlayerCoords is used to track the remaining bots that need to be moved
             List<Coord> myPlayerCoords = new List<Coord>(game.gridData.playerCoords);
+
+            // coordsToAvoid includes existing player bots, existing enemy bots, possible enemy moves, and the player spawn point
             List<Coord> coordsToAvoid = new List<Coord>(game.gridData.enemyCoordsIncludingPossibleMoves.Concat(myPlayerCoords));
+            coordsToAvoid.Add(game.gridData.spawn.ToCoord(game.state.rows, game.state.cols));
 
+            List<Coord> energyCoords = new List<Coord>(game.gridData.energyCoords);
+
+
+
+            // STEP 1: ALWAYS MOVE NEWLY SPAWNED BOTS FROM SPAWN POINT
+            moves.AddRange(MoveNewlySpawnedBot(game, myPlayerCoords, coordsToAvoid));
+
+
+            // STEP 2: IF WE HAVE ENOUGH BOTS, MOVE TO GUARD POSITIONS
+            moves.AddRange(GuardSpawnPoint(game, myPlayerCoords, coordsToAvoid));
+
+
+            // STEP 3: CHASE ENERGY WITH CLOSEST BOT
+            moves.AddRange(MoveBotsTowardsEnergy(game, energyCoords, myPlayerCoords, coordsToAvoid));
+
+
+            // STEP 4: USE REMAINING BOTS TO RAZE ENEMY SPAWN
+            moves.AddRange(MoveBotsTowardsEnemySpawn(game, myPlayerCoords, coordsToAvoid));
+
+
+
+
+            return moves;
+        }
+
+        /// <summary>
+        /// This function returns a list just to stay consistent with other functions
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="spawnPoint"></param>
+        /// <param name="playerCoords"></param>
+        /// <param name="coordsToAvoid"></param>
+        /// <returns></returns>
+        private List<Move> MoveNewlySpawnedBot(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
+        {
+            List<Move> moves = new List<Move>();
+            int cols = game.state.cols;
+            int rows = game.state.rows;
             Coord spawnPoint = Util.FindSpawnPoint(game);
-            Coord spawnedBot = myPlayerCoords.FirstOrDefault(c => c.EqualTo(spawnPoint));
+            Coord spawnedBot = playerCoords.FirstOrDefault(c => c.EqualTo(spawnPoint));
 
-            if (spawnedBot != null)
+            if (spawnedBot == null)
+                return moves;
+
+
+            Direction direction1 = (spawnPoint.Y > game.state.rows / 2) ? Direction.UP : Direction.DOWN;
+            Direction direction2 = (spawnPoint.Y > game.state.rows / 2) ? Direction.LEFT : Direction.RIGHT;
+            Coord desiredSpot1, desiredSpot2, desiredSpot3, desiredSpot4;
+            desiredSpot1 = spawnPoint.MoveTo(direction1);
+            desiredSpot2 = spawnPoint.MoveTo(direction2);
+            desiredSpot3 = spawnPoint.MoveTo(direction1.Opposite());
+            desiredSpot4 = spawnPoint.MoveTo(direction2.Opposite());
+            List<Coord> occupiedSpots = playerCoords.Concat(coordsToAvoid).ToList();
+
+            while (moves.Count <= 0)
             {
-                Move move = MoveNewlySpawnedBot(game, spawnPoint, myPlayerCoords, coordsToAvoid);
-                if (move != null)
-                    moves.Add(move);
+                if (!Util.CoordOccupied(desiredSpot1, cols, occupiedSpots))
+                    moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot1.ToIndex(cols)));
+
+                if (!Util.CoordOccupied(desiredSpot2, cols, occupiedSpots))
+                    moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot2.ToIndex(cols)));
+
+                if (!Util.CoordOccupied(desiredSpot3, cols, occupiedSpots))
+                    moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot3.ToIndex(cols)));
+
+                if (!Util.CoordOccupied(desiredSpot4, cols, occupiedSpots))
+                    moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot4.ToIndex(cols)));
             }
-            if (myPlayerCoords.Count >= 6)
-                moves.AddRange(GuardSpawnPoint(game, myPlayerCoords, coordsToAvoid));
 
-
-            foreach (Coord coord in myPlayerCoords)
+            foreach (Move move in moves)
             {
-                Coord nearestEnergy = Util.FindNearestEnergy(game.gridData.energyCoords, coord);
+                coordsToAvoid.RemoveAll(c => c.EqualTo(move.from.ToCoord(rows, cols)));
+                coordsToAvoid.Add(move.to.ToCoord(rows, cols));
 
-                if (nearestEnergy != null)
-                {
-                    Move move = Util.MoveTowardsCoord(coord, nearestEnergy, game, coordsToAvoid.ToList());
-
-                    if (move != null)
-                    {
-                        Coord newPlayerCoord = new Coord(move, true, game.state.cols);
-
-                        moves.Add(move);
-                        coordsToAvoid.RemoveAll(c => c.EqualTo(coord));
-                        coordsToAvoid.Add(newPlayerCoord.Copy());
-                    }
-                }
             }
 
+            // if we got here, all direct moves are blocked
+            //   moves.AddRange(recursivelyMoveBlockedBots(spawnPoint, desiredSpot1, game, playerCoords, coordsToAvoid));
             return moves;
         }
 
@@ -62,6 +113,10 @@ namespace WinningBot.Strategies
         private List<Move> GuardSpawnPoint(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
         {
             List<Move> moves = new List<Move>();
+
+            if (playerCoords.Count < 6)
+                return moves;
+
             int cols = game.state.cols;
             int rows = game.state.rows;
 
@@ -125,86 +180,65 @@ namespace WinningBot.Strategies
             return moves;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="game"></param>
-        /// <param name="spawnPoint"></param>
-        /// <param name="playerCoords"></param>
-        /// <param name="coordsToAvoid"></param>
-        /// <returns></returns>
-        private Move MoveNewlySpawnedBot(Game game, Coord spawnPoint, List<Coord> playerCoords, List<Coord> coordsToAvoid)
-        {
-            Move move = null;
-            Direction direction1 = (spawnPoint.Y > game.state.rows / 2) ? Direction.UP : Direction.DOWN;
-            Direction direction2 = (spawnPoint.Y > game.state.rows / 2) ? Direction.LEFT : Direction.RIGHT;
-            int cols = game.state.cols;
-            int rows = game.state.rows;
-            Coord desiredSpot1, desiredSpot2, desiredSpot3, desiredSpot4;
-            desiredSpot1 = spawnPoint.MoveTo(direction1);
-            desiredSpot2 = spawnPoint.MoveTo(direction2);
-            desiredSpot3 = spawnPoint.MoveTo(direction1.Opposite());
-            desiredSpot4 = spawnPoint.MoveTo(direction2.Opposite());
-            List<Coord> occupiedSpots = playerCoords.Concat(coordsToAvoid).ToList();
-
-            if (!Util.CoordOccupied(desiredSpot1, cols, occupiedSpots))
-                move = new Move(spawnPoint.ToIndex(cols), desiredSpot1.ToIndex(cols));
-
-            if (!Util.CoordOccupied(desiredSpot2, cols, occupiedSpots))
-                move = new Move(spawnPoint.ToIndex(cols), desiredSpot2.ToIndex(cols));
-
-            if (!Util.CoordOccupied(desiredSpot3, cols, occupiedSpots))
-                move = new Move(spawnPoint.ToIndex(cols), desiredSpot3.ToIndex(cols));
-
-            if (!Util.CoordOccupied(desiredSpot4, cols, occupiedSpots))
-                move = new Move(spawnPoint.ToIndex(cols), desiredSpot4.ToIndex(cols));
-
-            if (move != null)
-            {
-                coordsToAvoid.RemoveAll(c => c.EqualTo(move.from.ToCoord(rows, cols)));
-                coordsToAvoid.Add(move.to.ToCoord(rows, cols));
-            }
-
-            // if we got here, all direct moves are blocked
-            //   moves.AddRange(recursivelyMoveBlockedBots(spawnPoint, desiredSpot1, game, playerCoords, coordsToAvoid));
-            return move;
-        }
-
-        private List<Move> recursivelyMoveBlockedBots(Coord from, Coord to, Game game, List<Coord> playerCoords,
+        private List<Move> MoveBotsTowardsEnergy(Game game, List<Coord> energyPoints, List<Coord> playerCoords,
             List<Coord> coordsToAvoid)
         {
-            // if dest is open move to it
-            // if dest is taken by player, recursive move dest
-
-
-
-
             List<Move> moves = new List<Move>();
+            int rows = game.state.rows;
             int cols = game.state.cols;
 
-            // if desired spot is open, take it
-            if (coordsToAvoid.FirstOrDefault(c => c.EqualTo(to)) == null)
+            foreach (Coord energyPoint in energyPoints)
             {
-                moves.Add(new Move(from.ToIndex(cols), to.ToIndex(cols)));
-                playerCoords.RemoveAll(c => c.EqualTo(from));
-                coordsToAvoid.RemoveAll(c => c.EqualTo(from));
-                coordsToAvoid.Add(to.Copy());
-                return moves;
-            }
+                Coord chasingBot = Util.FindNearestBot(playerCoords, energyPoint);
 
-            if (playerCoords.FirstOrDefault(c => c.EqualTo(to)) != null)
-            {
-                List<Coord> possibleMoves = Util.GetAdjacentCoords(to, game);
+                if (chasingBot == null)
+                    continue;
 
-                foreach (Coord possibleMove in possibleMoves)
+                Move move = Util.MoveTowardsCoord(chasingBot, energyPoint, game, coordsToAvoid, false);
+                if (move != null)
                 {
-
+                    moves.Add(move);
+                    playerCoords.RemoveAll(c => c.EqualTo(move.ToCoord(true, rows, cols)));
+                    coordsToAvoid.RemoveAll(c => c.EqualTo(move.ToCoord(true, rows, cols)));
+                    coordsToAvoid.Add(move.ToCoord(false, rows, cols));
                 }
 
             }
 
             return moves;
+        }
 
+        private List<Move> MoveBotsTowardsEnemySpawn(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
+        {
+            int rows = game.state.rows;
+            int cols = game.state.cols;
+            Coord enemySpawn = game.gridData.enemySpawn.ToCoord(rows, cols);
+            List<Move> moves = new List<Move>();
+
+            // exit if we already have their spawn point razed
+            // and remove the razing bot from the list of bots to be moved
+            Coord razingBot = playerCoords.FirstOrDefault(c => c.EqualTo(enemySpawn));
+            if (razingBot != null)
+            {
+                playerCoords.RemoveAll(c => c.EqualTo(razingBot));
+                return moves;
+            }
+
+            for (int x = playerCoords.Count - 1; x >= 0; x--)
+            {
+                Coord playerCoord = playerCoords[x];
+                Move move = Util.MoveTowardsCoord(playerCoord, enemySpawn, game, coordsToAvoid, true);
+
+                if (move != null)
+                {
+                    moves.Add(move);
+                    playerCoords.RemoveAt(x);
+                    coordsToAvoid.RemoveAll(c => c.EqualTo(move.ToCoord(true, rows, cols)));
+                    coordsToAvoid.Add(move.ToCoord(false, rows, cols));
+                }
+            }
+
+            return moves;
         }
 
     }

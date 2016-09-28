@@ -76,11 +76,11 @@ namespace WinningBot.Models
         /// Using just an Int would conflict with the default constructor
         /// </summary>
         /// <param name="move"></param>
-        /// <param name="moveToIndex"></param>
+        /// <param name="useToIndex"></param>
         /// <param name="cols"></param>
-        public Coord(Move move, bool moveToIndex, int cols)
+        public Coord(Move move, bool useToIndex, int cols)
         {
-            int playerIndex = (moveToIndex) ? move.to : move.from;
+            int playerIndex = (useToIndex) ? move.to : move.from;
 
             X = playerIndex % cols;
             Y = playerIndex / cols;
@@ -133,6 +133,12 @@ namespace WinningBot.Models
         {
             from = f;
             to = t;
+        }
+
+        public Coord ToCoord(bool useFromIndex, int rows, int cols)
+        {
+            int index = (useFromIndex) ? from : to;
+            return Util.ConvertIndexToCoord(index, rows, cols);
         }
 
         public string Print()
