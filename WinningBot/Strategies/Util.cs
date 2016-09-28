@@ -116,6 +116,12 @@ namespace WinningBot.Strategies
             return ConvertIndexToCoord(index, rows, cols);
         }
 
+        public static Coord FindSpawnPoint(Game game)
+        {
+            return (game.player == "r") ?
+                 game.state.p1.spawn.ToCoord(game.state.rows, game.state.cols) :
+                 game.state.p2.spawn.ToCoord(game.state.rows, game.state.cols); 
+        }
 
         public static bool CoordOccupied(Coord coord, int cols, List<Coord> occupiedCoords)
         {
@@ -153,7 +159,7 @@ namespace WinningBot.Strategies
             return nearestEnergy;
         }
 
-        public static Move MoveTowardsCoord(Coord from, Coord to, int cols, List<Coord> occupiedCoords, bool bumpExistingBots = false)
+        public static Move MoveTowardsCoord(Coord from, Coord to, Game game, List<Coord> occupiedCoords, bool bumpExistingBots = false)
         {
             if (from.EqualTo(to))
                 return null;
@@ -162,7 +168,7 @@ namespace WinningBot.Strategies
             //todo: avoid moving back to spawn point
 
 
-            List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
+            List<Coord> adjacentCoords = GetAdjacentCoords(from, game.state.cols, occupiedCoords);
 
             if (!adjacentCoords.Any())
                 return null;
@@ -176,7 +182,7 @@ namespace WinningBot.Strategies
             else if (from.Y < to.Y)
                 adjacentCoords.Sort((c1, c2) => c2.Y.CompareTo(c1.Y));
 
-            return new Move(ConvertCoordToIndex(from, cols), ConvertCoordToIndex(adjacentCoords.First(), cols));
+            return new Move(ConvertCoordToIndex(from, game.state.cols), ConvertCoordToIndex(adjacentCoords.First(), game.state.cols));
         }
 
         public static List<Coord> GetAdjacentCoords(Coord coord, int cols, List<Coord> takenCoords)
