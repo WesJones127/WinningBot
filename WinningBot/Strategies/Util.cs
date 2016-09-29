@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography;
 using WinningBot.Models;
 
 namespace WinningBot.Strategies
@@ -159,7 +158,10 @@ namespace WinningBot.Strategies
         public static Move MoveTowardsCoord(Coord from, Coord to, Game game, ref List<Coord> botsToMove, ref List<Coord> occupiedCoords, bool avoidSpawnPoint = true)
         {
             if (from.EqualTo(to))
+            {
+                Log(game.player, "from = to");
                 return null;
+            }
 
             int cols = game.state.cols;
             List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
@@ -169,7 +171,10 @@ namespace WinningBot.Strategies
                 adjacentCoords.RemoveAll(c => c.EqualTo(game.gridData.spawnPoint));
 
             if (!adjacentCoords.Any())
+            {
+                Log(game.player, "no adjacent cells");
                 return null;
+            }
 
             Coord destination = null;
 
@@ -188,12 +193,15 @@ namespace WinningBot.Strategies
 
             //Coord destination = adjacentCoords.First();
             if (destination == null)
+            {
+                Log(game.player, "destination = null");
                 return null;
+            }
 
             Move move = new Move(){ from = from.ToIndex(cols), to = destination.ToIndex(cols)};
             botsToMove.RemoveAll(c => c.EqualTo(from));
             occupiedCoords.RemoveAll(c => c.EqualTo(from));
-            occupiedCoords.Add(destination);
+            occupiedCoords.Add(destination.Copy());
 
             return move;
         }
