@@ -138,21 +138,21 @@ namespace WinningBot.Strategies
             return false;
         }
 
-        public static Coord FindNearestEnergy(List<Coord> energyCoords, Coord bot)
+        public static Coord FindNearestTarget(List<Coord> targetCoords, Coord bot)
         {
             int fewestMoves = 0;
             Coord nearestEnergy = null;
 
-            foreach (Coord energyCoord in energyCoords)
+            foreach (Coord target in targetCoords)
             {
-                int horizontalMoves = Math.Abs(energyCoord.X - bot.X);
-                int verticalMoves = Math.Abs(energyCoord.Y - bot.Y);
+                int horizontalMoves = Math.Abs(target.X - bot.X);
+                int verticalMoves = Math.Abs(target.Y - bot.Y);
                 int totalMoves = horizontalMoves + verticalMoves;
 
                 if (totalMoves < fewestMoves || fewestMoves == 0)
                 {
                     fewestMoves = totalMoves;
-                    nearestEnergy = energyCoord;
+                    nearestEnergy = target;
                 }
             }
 

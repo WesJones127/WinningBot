@@ -39,11 +39,33 @@ namespace WinningBot.Strategies
 
 
             // STEP 4: USE REMAINING BOTS TO RAZE ENEMY SPAWN
-            moves.AddRange(MoveBotsTowardsEnemySpawn(game, myPlayerCoords, coordsToAvoid));
+            moves.AddRange(MoveBotsTowardsEnemySpawn(game, myPlayerCoords));
 
+            // STEP 5: CHASE ENEMY BOTS
+            moves.AddRange(ChaseEnemyBots(game, myPlayerCoords, game.gridData.enemyCoords, coordsToAvoid));
+           
+            return moves;
+        }
 
+        private IEnumerable<Move> ChaseEnemyBots(Game game, List<Coord> playerCoords, List<Coord> enemyBotCoords, List<Coord> coordsToAvoid)
+        {
+            List<Move> moves = new List<Move>();
+            int rows = game.state.rows;
+            int cols = game.state.cols;
 
-
+            for (int x = playerCoords.Count - 1; x >= 0; x--)
+            {
+                Coord bot = playerCoords[x];
+                Coord enemyBot = Util.FindNearestTarget(enemyBotCoords, bot);
+                Move move = Util.MoveTowardsCoord(bot, enemyBot, game, coordsToAvoid);
+                if (move != null)
+                {
+                    moves.Add(move);
+                    playerCoords.RemoveAt(x);
+                    coordsToAvoid.RemoveAll(c => c.EqualTo(move.ToCoord(true, rows, cols)));
+                    coordsToAvoid.Add(move.ToCoord(false, rows, cols));
+                }
+            }
             return moves;
         }
 
@@ -62,6 +84,7 @@ namespace WinningBot.Strategies
             int rows = game.state.rows;
             Coord spawnPoint = Util.FindSpawnPoint(game);
             Coord spawnedBot = playerCoords.FirstOrDefault(c => c.EqualTo(spawnPoint));
+            bool moveMade = false;
 
             if (spawnedBot == null)
                 return moves;
@@ -76,19 +99,31 @@ namespace WinningBot.Strategies
             desiredSpot4 = spawnPoint.MoveTo(direction2.Opposite());
             List<Coord> occupiedSpots = playerCoords.Concat(coordsToAvoid).ToList();
 
-            while (moves.Count <= 0)
+            while (moveMade == false)
             {
                 if (!Util.CoordOccupied(desiredSpot1, cols, occupiedSpots))
+                {
+                    moveMade = true;
                     moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot1.ToIndex(cols)));
+                }
 
                 if (!Util.CoordOccupied(desiredSpot2, cols, occupiedSpots))
+                {
+                    moveMade = true;
                     moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot2.ToIndex(cols)));
+                }
 
                 if (!Util.CoordOccupied(desiredSpot3, cols, occupiedSpots))
+                {
+                    moveMade = true;
                     moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot3.ToIndex(cols)));
+                }
 
                 if (!Util.CoordOccupied(desiredSpot4, cols, occupiedSpots))
+                {
+                    moveMade = true;
                     moves.Add(new Move(spawnPoint.ToIndex(cols), desiredSpot4.ToIndex(cols)));
+                }
             }
 
             foreach (Move move in moves)
@@ -208,12 +243,13 @@ namespace WinningBot.Strategies
             return moves;
         }
 
-        private List<Move> MoveBotsTowardsEnemySpawn(Game game, List<Coord> playerCoords, List<Coord> coordsToAvoid)
+        private List<Move> MoveBotsTowardsEnemySpawn(Game game, List<Coord> playerCoords)
         {
             int rows = game.state.rows;
             int cols = game.state.cols;
             Coord enemySpawn = game.gridData.enemySpawn.ToCoord(rows, cols);
             List<Move> moves = new List<Move>();
+            List<Coord> coordsToAvoid = playerCoords.Concat(game.gridData.enemyCoords).ToList();
 
             // exit if we already have their spawn point razed
             // and remove the razing bot from the list of bots to be moved
