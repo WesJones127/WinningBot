@@ -39,9 +39,9 @@ namespace WinningBot.Models
     public class GridData
     {
         public int energy { get; set; }
-        public int spawn { get; set; }
+        public Coord spawnPoint { get; set; }
         public int enemyEnergy { get; set; }
-        public int enemySpawn { get; set; }
+        public Coord enemySpawn { get; set; }
         public List<Coord> playerCoords { get; set; }
         public List<Coord> enemyCoords { get; set; }
         public List<Coord> energyCoords { get; set; }
@@ -64,9 +64,9 @@ namespace WinningBot.Models
         public int X { get; set; }
         public int Y { get; set; }
 
-        public Coord(int x, int y, int? id = null)
+        public Coord(int x, int y, int? coordId = null)
         {
-            id = id;
+            id = coordId;
             X = x;
             Y = y;
         }
@@ -102,7 +102,7 @@ namespace WinningBot.Models
             return Convert.ToInt32(index);
         }
 
-        public Coord MoveTo(Direction direction)
+        public Coord AdjacentCoord(Direction direction)
         {
             switch (direction)
             {
@@ -129,16 +129,22 @@ namespace WinningBot.Models
         public int from { get; set; }
         public int to { get; set; }
 
-        public Move(int f, int t)
-        {
-            from = f;
-            to = t;
-        }
+        //public Move(Coord f, Coord t, int cols)
+        //{
+        //    from = f.ToIndex(cols);
+        //    to = t.ToIndex(cols);
+        //}
 
-        public Coord ToCoord(bool useFromIndex, int rows, int cols)
+        //public Move(int f, int t)
+        //{
+        //    from = f;
+        //    to = t;
+        //}
+
+        public Coord ToCoord(bool useFromIndex, int cols)
         {
             int index = (useFromIndex) ? from : to;
-            return Util.ConvertIndexToCoord(index, rows, cols);
+            return Util.ConvertIndexToCoord(index, cols, cols);
         }
 
         public string Print()
