@@ -193,7 +193,10 @@ namespace WinningBot.Strategies
             int razingBots = 0;
 
             if (botsToMove.Count <= 2)
+            {
+                Util.Log(game.player, "only 1 bot");
                 return moves;
+            }
             if (botsToMove.Count <= 5)
                 razingBots = 1;
             else
@@ -207,6 +210,7 @@ namespace WinningBot.Strategies
             if (razingBot != null)
             {
                 botsToMove.RemoveAll(c => c.EqualTo(razingBot));
+
                 return moves;
             }
 
