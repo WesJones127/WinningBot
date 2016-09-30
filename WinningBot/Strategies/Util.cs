@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using WinningBot.Models;
 
@@ -116,18 +117,11 @@ namespace WinningBot.Strategies
             return ConvertIndexToCoord(index, rows, cols);
         }
 
-        //public static Coord FindSpawnPoint(Game game)
-        //{
-        //    return (game.player == "r") ?
-        //         game.state.p1.spawn.ToCoord(game.state.rows, game.state.cols) :
-        //         game.state.p2.spawn.ToCoord(game.state.rows, game.state.cols);
-        //}
-
         public static bool CoordOccupied(Coord coord, int cols, List<Coord> occupiedCoords)
         {
             foreach (Coord takenCoord in occupiedCoords)
             {
-                if (takenCoord.EqualTo(coord))
+                if (takenCoord.SameAs(coord))
                 {
                     return true;
                 }
@@ -155,9 +149,9 @@ namespace WinningBot.Strategies
             return nearestEnergy;
         }
 
-        public static Move MoveTowardsCoord(Coord from, Coord to, Game game, ref List<Coord> botsToMove, ref List<Coord> occupiedCoords, bool avoidSpawnPoint = true)
+        public static Move MoveTowardsCoord(Coord from, Coord to, Game game, List<Coord> botsToMove, List<Coord> occupiedCoords, bool avoidSpawnPoint = true)
         {
-            if (from.EqualTo(to))
+            if (from.SameAs(to))
             {
                 Log(game.player, "from = to");
                 return null;
@@ -165,10 +159,10 @@ namespace WinningBot.Strategies
 
             int cols = game.state.cols;
             List<Coord> adjacentCoords = GetAdjacentCoords(from, cols, occupiedCoords);
-            
+
             // avoid moving back to spawn point
             if (avoidSpawnPoint)
-                adjacentCoords.RemoveAll(c => c.EqualTo(game.gridData.spawnPoint));
+                adjacentCoords.RemoveAll(c => c.SameAs(game.gridData.spawnPoint));
 
             if (!adjacentCoords.Any())
             {
@@ -180,16 +174,16 @@ namespace WinningBot.Strategies
 
             if (from.X > to.X)
                 destination = new Coord(from.X - 1, from.Y);
-               // adjacentCoords.Sort((c1, c2) => c1.X.CompareTo(c2.X));
+            // adjacentCoords.Sort((c1, c2) => c1.X.CompareTo(c2.X));
             else if (from.X < to.X)
                 destination = new Coord(from.X + 1, from.Y);
-               // adjacentCoords.Sort((c1, c2) => c2.X.CompareTo(c1.X));
+            // adjacentCoords.Sort((c1, c2) => c2.X.CompareTo(c1.X));
             else if (from.Y > to.Y)
                 destination = new Coord(from.X, from.Y - 1);
-               // adjacentCoords.Sort((c1, c2) => c1.Y.CompareTo(c2.Y));
+            // adjacentCoords.Sort((c1, c2) => c1.Y.CompareTo(c2.Y));
             else if (from.Y < to.Y)
                 destination = new Coord(from.X, from.Y + 1);
-               // adjacentCoords.Sort((c1, c2) => c2.Y.CompareTo(c1.Y));
+            // adjacentCoords.Sort((c1, c2) => c2.Y.CompareTo(c1.Y));
 
             //Coord destination = adjacentCoords.First();
             if (destination == null)
@@ -198,9 +192,9 @@ namespace WinningBot.Strategies
                 return null;
             }
 
-            Move move = new Move(){ from = from.ToIndex(cols), to = destination.ToIndex(cols)};
-            botsToMove.RemoveAll(c => c.EqualTo(from));
-            occupiedCoords.RemoveAll(c => c.EqualTo(from));
+            Move move = new Move() { from = from.ToIndex(cols), to = destination.ToIndex(cols) };
+            botsToMove.RemoveAll(c => c.SameAs(from));
+            occupiedCoords.RemoveAll(c => c.SameAs(from));
             occupiedCoords.Add(destination.Copy());
 
             return move;
@@ -280,92 +274,131 @@ namespace WinningBot.Strategies
             Coord enemyBot = FindNearestBot(enemyCoords, game.gridData.spawnPoint);
             int enemyDistanceFromSpawn = GetDistanceBetweenCoords(enemyBot, game.gridData.spawnPoint);
 
-            
+
             Log(game.player, "guard needed = " + (enemyDistanceFromSpawn <= playerDistanceFromSpawn) + ".  bot count = " + playerCoords.Count);
             // return true if we need to move to defense position
             return (enemyDistanceFromSpawn <= playerDistanceFromSpawn);
         }
 
-        public static List<Move> CreateSmallGuard(Game game, ref List<Coord> botsToMove, ref List<Coord> coordsToAvoid)
+        /// <summary>
+        /// Leaves a single bot on the player spawn point
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="botsToMove"></param>
+        /// <param name="coordsToAvoid"></param>
+        /// <returns></returns>
+        public static List<Move> CreateSingleBotGuard(Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
         {
             List<Move> moves = new List<Move>();
-            //Coord guardPoint = (game.player == "r") ? new Coord(spawnPoint.X + 1, spawnPoint.Y + 1) : new Coord(spawnPoint.X - 1, spawnPoint.Y -1);
 
-            if (botsToMove.Count < 2)
-                return moves;
-
-            Coord closestBot = FindNearestBot(botsToMove, game.gridData.spawnPoint);
-            //moves.Add(MoveTowardsCoord(closestBot, guardPoint, game, coordsToAvoid));
-            Move move = MoveTowardsCoord(closestBot, game.gridData.spawnPoint, game, ref  botsToMove, ref coordsToAvoid, false);
-            
-            if (move != null)
-            {
-                Log(game.player, "small guard move: " + move.Print());
-                moves.Add(move);
-            }
+            Coord spawnPoint = game.gridData.spawnPoint;
+            attemptGuardBotMove(spawnPoint, game, botsToMove, coordsToAvoid, moves, false);
 
             return moves;
         }
 
-        public static List<Move> CreateMediumGuard(Game game, ref List<Coord> botsToMove, ref List<Coord> coordsToAvoid)
+        /// <summary>
+        /// Leaves a bot on the player spawn point
+        /// And another bot in the spot diagonally towards the enemy spawn.
+        /// This 2nd bot will kill enemies coming straight on, but not enemies sneaking around the back.
+        /// The spawn point guard still blocks those enemies.
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="botsToMove"></param>
+        /// <param name="coordsToAvoid"></param>
+        /// <returns></returns>
+        public static List<Move> CreateDoubleBotGuard(Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
         {
             List<Move> moves = new List<Move>();
 
-            if (botsToMove.Count < 6)
-                return moves;
+            Coord spawnPoint = game.gridData.spawnPoint;
+            attemptGuardBotMove(spawnPoint, game, botsToMove, coordsToAvoid, moves, false);
 
-            int cols = game.state.cols;
-
-            Coord guardSpot1 = (game.player == "r")
-                ? new Coord(game.gridData.spawnPoint.X - 1, game.gridData.spawnPoint.Y + 1)
-                : new Coord(game.gridData.spawnPoint.X + 1, game.gridData.spawnPoint.Y - 1);
-
-            Coord guardSpot2 = (game.player == "r")
-                ? new Coord(game.gridData.spawnPoint.X + 1, game.gridData.spawnPoint.Y + 1)
-                : new Coord(game.gridData.spawnPoint.X - 1, game.gridData.spawnPoint.Y - 1);
-
-            Coord guardSpot3 = (game.player == "r")
-                ? new Coord(game.gridData.spawnPoint.X + 1, game.gridData.spawnPoint.Y - 1)
-                : new Coord(game.gridData.spawnPoint.X - 1, game.gridData.spawnPoint.Y + 1);
-
-            Coord guardBot1 = FindNearestBot(botsToMove, guardSpot1);
-            if (guardBot1 != null)
-            {
-                Move move = MoveTowardsCoord(guardBot1, guardSpot1, game, ref botsToMove, ref coordsToAvoid);
-                if (move != null)
-                    moves.Add(move);
-                else
-                // remove the chosen guard bot from the list of bots to move, even if we didn't move it
-                // if it was already on the guard spot, then we don't want to move it again
-                botsToMove.RemoveAll(c => c.EqualTo(guardBot1));
-            }
-
-            Coord guardBot2 = FindNearestBot(botsToMove, guardSpot2);
-            if (guardBot2 != null)
-            {
-                Move move = MoveTowardsCoord(guardBot2, guardSpot2, game, ref botsToMove, ref  coordsToAvoid);
-                if (move != null)
-                    moves.Add(move);
-                else
-                // remove the chosen guard bot from the list of bots to move, even if we didn't move it
-                // if it was already on the guard spot, then we don't want to move it again
-                botsToMove.RemoveAll(c => c.Equals(guardBot2));
-            }
-
-            Coord guardBot3 = FindNearestBot(botsToMove, guardSpot3);
-            if (guardBot3 != null)
-            {
-                Move move = MoveTowardsCoord(guardBot3, guardSpot3, game, ref botsToMove, ref coordsToAvoid);
-                if (move != null)
-                    moves.Add(move);
-                else
-                // remove the chosen guard bot from the list of bots to move, even if we didn't move it
-                // if it was already on the guard spot, then we don't want to move it again
-                botsToMove.RemoveAll(c => c.Equals(guardBot3));
-            }
+            Coord guardSpot1 = (game.player == "r") ?
+                spawnPoint.AdjacentCoord(Direction.DOWN_RIGHT) :
+                spawnPoint.AdjacentCoord(Direction.UP_LEFT);
+            attemptGuardBotMove(guardSpot1, game, botsToMove, coordsToAvoid, moves, true);
 
             return moves;
+        }
 
+        /// <summary>
+        /// This leaves a bot on the spawn point, and the 3 diagonal points adjacent to the spawn point.
+        /// This allows us to move the spawn point guard right away if we pick up more energy, and kills
+        /// enemy bots that come at the spawn point directly.
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="botsToMove"></param>
+        /// <param name="coordsToAvoid"></param>
+        /// <returns></returns>
+        public static List<Move> CreateMediumGuard(Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
+        {
+            List<Move> moves = new List<Move>();
+
+            Coord spawnPoint = game.gridData.spawnPoint;
+            attemptGuardBotMove(spawnPoint, game, botsToMove, coordsToAvoid, moves, false);
+
+            Coord guardSpot1 = (game.player == "r") ?
+                spawnPoint.AdjacentCoord(Direction.DOWN_RIGHT) :
+                spawnPoint.AdjacentCoord(Direction.UP_LEFT);
+            attemptGuardBotMove(guardSpot1, game, botsToMove, coordsToAvoid, moves, true);
+
+            Coord guardSpot2 = (game.player == "r") ?
+                spawnPoint.AdjacentCoord(Direction.DOWN_LEFT) :
+                spawnPoint.AdjacentCoord(Direction.UP_RIGHT);
+            attemptGuardBotMove(guardSpot2, game, botsToMove, coordsToAvoid, moves, true);
+
+            Coord guardSpot3 = (game.player == "r") ?
+                spawnPoint.AdjacentCoord(Direction.UP_RIGHT) :
+                spawnPoint.AdjacentCoord(Direction.DOWN_LEFT);
+            attemptGuardBotMove(guardSpot3, game, botsToMove, coordsToAvoid, moves, true);
+
+            return moves;
+        }
+
+        private static void attemptGuardBotMove(Coord to, Game game,
+            List<Coord> botsToMove, List<Coord> coordsToAvoid, List<Move> moves,
+            bool avoidSpawnPoint)
+        {
+            Coord bot = FindNearestBot(botsToMove, to);
+
+            if (bot != null)
+            {
+                Move move = MoveTowardsCoord(bot, to, game, botsToMove, coordsToAvoid, avoidSpawnPoint);
+                if (move != null)
+                {
+                    moves.Add(move);
+                }
+                else
+                {
+                    // remove the chosen guard bot from the list of bots to move, even if we didn't move it
+                    // if it was already on the guard spot, then we don't want to move it again
+                    botsToMove.RemoveAll(c => c.SameAs(bot));
+                }
+            }
+        }
+
+        public static bool AddMoves(List<Move> existingMoveList, List<Move> newMoves)
+        {
+            bool movesMade = false;
+
+            foreach (Move newMove in newMoves)
+            {
+                if (AddMove(existingMoveList, newMove))
+                    movesMade = true;
+            }
+
+            return movesMade;
+        }
+
+        public static bool AddMove(List<Move> existingMoveList, Move newMove)
+        {
+            if (newMove == null)
+                return false;
+
+            existingMoveList.Add(new Move { from = newMove.from, to = newMove.to });
+
+            return true;
         }
     }
 }

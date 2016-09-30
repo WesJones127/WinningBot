@@ -28,31 +28,17 @@ namespace WinningBot.Strategies
             List<Coord> energyCoords = new List<Coord>(game.gridData.energyCoords);
 
 
-
             // MOVE BOT FROM SPAWN POINT IF WE HAVE ANOTHER BOT READY TO SPAWN
-            List<Move> tempMoves = MoveBotFromSpawnPoint(game, ref botsToMove, ref coordsToAvoid);
-            if (tempMoves.Any())
-                moves.AddRange(tempMoves);
-
+            MoveBotFromSpawnPoint(moves, game, botsToMove, coordsToAvoid);
 
             // IF WE HAVE ENOUGH BOTS, MOVE TO GUARD POSITIONS
-            tempMoves = GuardSpawnPoint(game, ref botsToMove, ref coordsToAvoid);
-            if (tempMoves.Any())
-                moves.AddRange(tempMoves);
-
+            GuardSpawnPoint(moves, game, botsToMove, coordsToAvoid);
 
             // ATTEMPT TO RAZE ENEMY SPAWN
-            tempMoves = MoveBotsTowardsEnemySpawn(game, ref botsToMove, ref coordsToAvoid);
-            if (tempMoves.Any())
-                moves.AddRange(tempMoves);
-
+            MoveBotsTowardsEnemySpawn(moves, game, botsToMove, coordsToAvoid);
 
             // CHASE ENERGY WITH CLOSEST BOT
-            tempMoves = MoveBotsTowardsEnergy(game, energyCoords, ref  botsToMove, ref  coordsToAvoid);
-            if (tempMoves.Any())
-                moves.AddRange(tempMoves);
-
-
+            MoveBotsTowardsEnergy(moves, game, energyCoords, botsToMove, coordsToAvoid);
 
 
             return moves;
@@ -66,22 +52,21 @@ namespace WinningBot.Strategies
         /// <param name="playerCoords"></param>
         /// <param name="coordsToAvoid"></param>
         /// <returns></returns>
-        private List<Move> MoveBotFromSpawnPoint(Game game, ref List<Coord> botsToMove, ref List<Coord> coordsToAvoid)
+        private void MoveBotFromSpawnPoint(List<Move> moves, Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
         {
-            List<Move> moves = new List<Move>();
-            int moveCount = 0;
+            int originalMoveCount = moves.Count;
             int cols = game.state.cols;
             Coord spawnPoint = game.gridData.spawnPoint;
-            Coord spawnPointBlocker = botsToMove.FirstOrDefault(c => c.EqualTo(spawnPoint));
+            Coord spawnPointBlocker = botsToMove.FirstOrDefault(c => c.SameAs(spawnPoint));
             bool hasEnergy = game.gridData.energy >= 1;
 
             if (spawnPointBlocker == null)
-                return moves;
+                return;
 
             if (Util.GuardNeeded(game, botsToMove, game.gridData.enemyCoords) &&
                 !hasEnergy &&
                 botsToMove.Count >= 2)
-                return moves;
+                return;
 
 
             Direction direction1 = (spawnPoint.Y > game.state.rows / 2) ? Direction.UP : Direction.DOWN;
@@ -90,58 +75,23 @@ namespace WinningBot.Strategies
             Coord desiredSpot2 = spawnPoint.AdjacentCoord(direction2);
             Coord desiredSpot3 = spawnPoint.AdjacentCoord(direction1.Opposite());
             Coord desiredSpot4 = spawnPoint.AdjacentCoord(direction2.Opposite());
-            // List<Coord> occupiedSpots = playerCoords.Concat(coordsToAvoid).ToList();
 
-            //while (moveCount <= 0)
-            //{
-            if (!Util.CoordOccupied(desiredSpot1, cols, coordsToAvoid))
+            while (moves.Count == originalMoveCount)
             {
-                moveCount++;
-                moves.Add(Util.MoveTowardsCoord(spawnPoint, desiredSpot1, game, ref botsToMove, ref coordsToAvoid));
+                if (!Util.CoordOccupied(desiredSpot1, cols, coordsToAvoid))
+                    Util.AddMove(moves, Util.MoveTowardsCoord(spawnPoint, desiredSpot1, game, botsToMove, coordsToAvoid));
 
-                foreach (Move move in moves)
-                {
-                    Util.Log(game.player, "MoveBotFromSpawnPoint = " + move.Print());
-                }
-                return moves;
+                if (!Util.CoordOccupied(desiredSpot2, cols, coordsToAvoid))
+                    Util.AddMove(moves, Util.MoveTowardsCoord(spawnPoint, desiredSpot2, game, botsToMove, coordsToAvoid));
+
+                if (!Util.CoordOccupied(desiredSpot3, cols, coordsToAvoid))
+                    Util.AddMove(moves, Util.MoveTowardsCoord(spawnPoint, desiredSpot3, game, botsToMove, coordsToAvoid));
+
+                if (!Util.CoordOccupied(desiredSpot4, cols, coordsToAvoid))
+                    Util.AddMove(moves, Util.MoveTowardsCoord(spawnPoint, desiredSpot4, game, botsToMove, coordsToAvoid));
+
+                originalMoveCount++;
             }
-
-            if (!Util.CoordOccupied(desiredSpot2, cols, coordsToAvoid))
-            {
-                moveCount++;
-                moves.Add(Util.MoveTowardsCoord(spawnPoint, desiredSpot2, game, ref  botsToMove, ref coordsToAvoid));
-
-                foreach (Move move in moves)
-                {
-                    Util.Log(game.player, "MoveBotFromSpawnPoint = " + move.Print());
-                }
-                return moves;
-            }
-
-            if (!Util.CoordOccupied(desiredSpot3, cols, coordsToAvoid))
-            {
-                moveCount++;
-                moves.Add(Util.MoveTowardsCoord(spawnPoint, desiredSpot3, game, ref  botsToMove, ref  coordsToAvoid));
-
-                foreach (Move move in moves)
-                {
-                    Util.Log(game.player, "MoveBotFromSpawnPoint = " + move.Print());
-                }
-                return moves;
-            }
-
-            if (!Util.CoordOccupied(desiredSpot4, cols, coordsToAvoid))
-            {
-                moveCount++;
-                moves.Add(Util.MoveTowardsCoord(spawnPoint, desiredSpot4, game, ref botsToMove, ref  coordsToAvoid));
-
-                foreach (Move move in moves)
-                {
-                    Util.Log(game.player, "MoveBotFromSpawnPoint = " + move.Print());
-                }
-                return moves;
-            }
-            // }
 
             foreach (Move move in moves)
             {
@@ -150,7 +100,6 @@ namespace WinningBot.Strategies
 
             // if we got here, all direct moves are blocked
             //   moves.AddRange(recursivelyMoveBlockedBots(spawnPoint, desiredSpot1, game, playerCoords, coordsToAvoid));
-            return moves;
         }
 
         /// <summary>
@@ -160,43 +109,35 @@ namespace WinningBot.Strategies
         /// <param name="botsToMove">This is the list of bots that need to be moved, NOT the list of all player bots</param>
         /// <param name="coordsToAvoid">This includes all player bots, enemy bots, and possible new locations for enemy bots</param>
         /// <returns></returns>
-        private List<Move> GuardSpawnPoint(Game game, ref List<Coord> botsToMove, ref List<Coord> coordsToAvoid)
+        private void GuardSpawnPoint(List<Move> moves, Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
         {
-            List<Move> moves = new List<Move>();
-
             if (botsToMove.Count < 2)
-                return moves;
+                return;
 
-            if (botsToMove.Count <= 4)
+            if (botsToMove.Count <= 3)
             {
                 if (Util.GuardNeeded(game, botsToMove, game.gridData.enemyCoords))
-                    moves.AddRange(Util.CreateSmallGuard(game, ref  botsToMove, ref  coordsToAvoid));
+                    Util.AddMoves(moves, Util.CreateSingleBotGuard(game, botsToMove, coordsToAvoid));
             }
             else if (botsToMove.Count <= 6)
-                moves.AddRange(Util.CreateSmallGuard(game, ref botsToMove, ref coordsToAvoid));
+                Util.AddMoves(moves, Util.CreateDoubleBotGuard(game, botsToMove, coordsToAvoid));
             else
-                moves.AddRange(Util.CreateMediumGuard(game, ref  botsToMove, ref coordsToAvoid));
-
+                Util.AddMoves(moves, Util.CreateMediumGuard(game, botsToMove, coordsToAvoid));
 
             foreach (Move move in moves)
             {
                 Util.Log(game.player, "GuardSpawnPoint = " + move.Print());
             }
-            return moves;
         }
 
-        private List<Move> MoveBotsTowardsEnemySpawn(Game game, ref List<Coord> botsToMove, ref List<Coord> coordsToAvoid)
+        private void MoveBotsTowardsEnemySpawn(List<Move> moves, Game game, List<Coord> botsToMove, List<Coord> coordsToAvoid)
         {
-            Util.Log(game.player, "MoveBotsTowardsEnemySpawn start");
             Coord enemySpawn = game.gridData.enemySpawn;
-            List<Move> moves = new List<Move>();
-            int razingBots = 0;
+            int razingBots;
 
             if (botsToMove.Count <= 2)
-            {
-                Util.Log(game.player, "only 1 bot");
-                return moves;
-            }
+                return;
+
             if (botsToMove.Count <= 5)
                 razingBots = 1;
             else
@@ -206,12 +147,11 @@ namespace WinningBot.Strategies
             //TODO: FIX THIS TO CHECK IF THE SPOT HAS BEEN RAZED BEFORE, THEN WE DON'T NEED TO LEAVE THE BOT ON THE RAZE POINT
             // exit if we already have their spawn point razed
             // and remove the razing bot from the list of bots to be moved
-            Coord razingBot = botsToMove.FirstOrDefault(c => c.EqualTo(enemySpawn));
+            Coord razingBot = botsToMove.FirstOrDefault(c => c.SameAs(enemySpawn));
             if (razingBot != null)
             {
-                botsToMove.RemoveAll(c => c.EqualTo(razingBot));
-
-                return moves;
+                botsToMove.RemoveAll(c => c.SameAs(razingBot));
+                return;
             }
 
             while (razingBots > 0)
@@ -219,66 +159,28 @@ namespace WinningBot.Strategies
                 for (int x = botsToMove.Count - 1; x >= 0; x--)
                 {
                     Coord playerCoord = botsToMove[x];
-                    Move move = Util.MoveTowardsCoord(playerCoord, enemySpawn, game, ref  botsToMove, ref coordsToAvoid);
-
-                    if (move != null)
-                    {
-                        moves.Add(move);
+                    if (Util.AddMove(moves, Util.MoveTowardsCoord(playerCoord, enemySpawn, game, botsToMove, coordsToAvoid)))
                         razingBots--;
-                    }
                 }
                 razingBots = 0;
             }
-
 
             foreach (Move move in moves)
             {
                 Util.Log(game.player, "MoveBotsTowardsEnemySpawn = " + move.Print());
             }
-
-            Util.Log(game.player, "MoveBotsTowardsEnemySpawn end. moves=" + moves.Count);
-            return moves;
         }
 
-        private List<Move> MoveBotsTowardsEnergy(Game game, List<Coord> energyPoints, ref List<Coord> botsToMove,
-           ref List<Coord> coordsToAvoid)
+        private void MoveBotsTowardsEnergy(List<Move> moves, Game game, List<Coord> energyPoints, List<Coord> botsToMove,
+           List<Coord> coordsToAvoid)
         {
-            Util.Log(game.player, "MoveBotsTowardsEnergy start. botsToMove=" + botsToMove.Count);
-            List<Move> moves = new List<Move>();
-
-            for (int x = botsToMove.Count - 1; x > 0; x--)
+            for (int x = botsToMove.Count - 1; x >= 0; x--)
             {
                 Coord bot = botsToMove[x];
                 Coord nearestEnergy = Util.FindNearestEnergy(energyPoints, bot);
-                Move move = Util.MoveTowardsCoord(bot, nearestEnergy, game, ref  botsToMove, ref  coordsToAvoid);
-                if (move != null)
-                {
-                    Util.Log(game.player, "MoveBotsTowardsEnergy = " + move.Print() + ".  Energy=" + nearestEnergy.Print() + " ChasingBot=" + bot.Print());
-                    moves.Add(move);
-                }
-                else
-                {
-                    Util.Log(game.player, "move null");
-                }
+
+                Util.AddMove(moves, Util.MoveTowardsCoord(bot, nearestEnergy, game, botsToMove, coordsToAvoid));
             }
-
-            //foreach (Coord energyPoint in energyPoints)
-            //{
-            //    Coord chasingBot = Util.FindNearestBot(botsToMove, energyPoint);
-
-            //    if (chasingBot == null)
-            //        continue;
-
-            //    Move move = Util.MoveTowardsCoord(chasingBot, energyPoint, game, botsToMove, coordsToAvoid);
-            //    if (move != null)
-            //    {
-            //        Util.Log(game.player, "MoveBotsTowardsEnergy = " + move.Print() + ".  Energy=" + energyPoint.Print() + " ChasingBot=" + chasingBot.Print());
-            //        moves.Add(move);
-            //    }
-            //}
-
-            Util.Log(game.player, "MoveBotsTowardsEnergy end. moves=" + moves.Count + ". botsToMove=" + botsToMove.Count);
-            return moves;
         }
     }
 }

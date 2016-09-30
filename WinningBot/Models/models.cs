@@ -91,7 +91,7 @@ namespace WinningBot.Models
             return new Coord(X, Y);
         }
 
-        public bool EqualTo(Coord otherCoord)
+        public bool SameAs(Coord otherCoord)
         {
             return X == otherCoord.X && Y == otherCoord.Y;
         }
@@ -114,6 +114,14 @@ namespace WinningBot.Models
                     return new Coord(X - 1, Y);
                 case Direction.RIGHT:
                     return new Coord(X + 1, Y);
+                case Direction.UP_LEFT:
+                    return new Coord(X - 1, Y - 1);
+                case Direction.UP_RIGHT:
+                    return new Coord(X + 1, Y - 1);
+                case Direction.DOWN_LEFT:
+                    return new Coord(X - 1, Y + 1);
+                case Direction.DOWN_RIGHT:
+                    return new Coord(X + 1, Y + 1);
             }
 
             throw new Exception("Direction is missing");
@@ -158,6 +166,10 @@ namespace WinningBot.Models
         UP,
         DOWN,
         LEFT,
-        RIGHT
+        RIGHT,
+        UP_LEFT,
+        UP_RIGHT,
+        DOWN_LEFT,
+        DOWN_RIGHT
     }
 }
