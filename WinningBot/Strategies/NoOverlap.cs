@@ -89,9 +89,8 @@ namespace WinningBot.Strategies
 
 
             foreach (Move move in moves)
-            {
                 Util.Log(game.player, "MoveBotFromSpawnPoint = " + move.Print());
-            }
+
 
             // if we got here, all direct moves are blocked
             //   moves.AddRange(recursivelyMoveBlockedBots(spawnPoint, desiredSpot1, game, playerCoords, coordsToAvoid));
@@ -115,9 +114,13 @@ namespace WinningBot.Strategies
                     Util.AddMoves(moves, Util.CreateSingleBotGuard(game, botsToMove, coordsToAvoid));
             }
             else if (botsToMove.Count <= 6)
+            {
                 Util.AddMoves(moves, Util.CreateDoubleBotGuard(game, botsToMove, coordsToAvoid));
+            }
             else
+            {
                 Util.AddMoves(moves, Util.CreateMediumGuard(game, botsToMove, coordsToAvoid));
+            }
 
             foreach (Move move in moves)
             {
@@ -168,22 +171,32 @@ namespace WinningBot.Strategies
             }
 
             foreach (Move move in moves)
-            {
                 Util.Log(game.player, "MoveBotsTowardsEnemySpawn = " + move.Print());
-            }
+
         }
 
         private void MoveBotsTowardsEnergy(List<Move> moves, Game game, List<Coord> energyPoints, List<Coord> botsToMove,
            List<Coord> coordsToAvoid)
         {
-            // for each energy, move the closest bot towards it
-            //for (int e = energyPoints.Count - 1; e >= 0; e--)
-            //{
-            //    Coord energy = energyPoints[e];
-            //    Coord nearestBot = Util.FindNearestBot(botsToMove, energy);
-            //    Util.AddMove(moves, Util.MoveTowardsCoord(nearestBot, energy, game, botsToMove, coordsToAvoid));
-            //}
+            int cols = game.state.cols;
 
+            // for each energy, move the closest bot towards it
+            energyPoints = game.player == "r" ? 
+                energyPoints.OrderBy(e => e.ToIndex(cols)).ToList() : 
+                energyPoints.OrderByDescending(e => e.ToIndex(cols)).ToList();
+
+            for (int e = 0; e < energyPoints.Count; e++)
+            {
+                Coord energy = energyPoints[e];
+                Coord nearestBot = Util.FindNearestBot(botsToMove, energy);
+                if (nearestBot != null)
+                    Util.AddMove(moves, Util.MoveTowardsCoord(nearestBot, energy, game, botsToMove, coordsToAvoid));
+            }
+
+            botsToMove = game.player == "r" ?
+                botsToMove.OrderBy(b => b.ToIndex(cols)).ToList() : 
+                botsToMove.OrderByDescending(b => b.ToIndex(cols)).ToList();
+            
             for (int x = botsToMove.Count - 1; x >= 0; x--)
             {
                 Coord bot = botsToMove[x];
@@ -191,6 +204,10 @@ namespace WinningBot.Strategies
 
                 Util.AddMove(moves, Util.MoveTowardsCoord(bot, nearestEnergy, game, botsToMove, coordsToAvoid));
             }
+
+            foreach (Move move in moves)
+                Util.Log(game.player, "MoveBotsTowardsEnergy = " + move.Print());
+
         }
     }
 }
