@@ -174,6 +174,14 @@ namespace WinningBot.Strategies
         private void MoveBotsTowardsEnergy(List<Move> moves, Game game, List<Coord> energyPoints, List<Coord> botsToMove,
            List<Coord> coordsToAvoid)
         {
+            // for each energy, move the closest bot towards it
+            for (int e = energyPoints.Count - 1; e >= 0; e--)
+            {
+                Coord energy = energyPoints[e];
+                Coord nearestBot = Util.FindNearestBot(botsToMove, energy);
+                Util.AddMove(moves, Util.MoveTowardsCoord(nearestBot, energy, game, botsToMove, coordsToAvoid));
+            }
+
             for (int x = botsToMove.Count - 1; x >= 0; x--)
             {
                 Coord bot = botsToMove[x];
