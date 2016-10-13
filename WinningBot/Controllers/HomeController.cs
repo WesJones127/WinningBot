@@ -35,8 +35,13 @@ namespace WinningBot.Controllers
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
+                Debug.WriteLine(ex.StackTrace);
             }
 
+            foreach (Move move in moves)
+            {
+                Util.Log(game.player, move.Print(game.state.cols));
+            }
             JsonResult result = Json(moves);
             return result;
         }

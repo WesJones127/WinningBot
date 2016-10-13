@@ -158,9 +158,9 @@ namespace WinningBot.Models
             return Util.ConvertIndexToCoord(index, cols, cols);
         }
 
-        public string Print()
+        public string Print(int cols)
         {
-            return "From " + from + " to " + to;
+            return "From " + from.ToCoord(cols, cols).Print() + " to " + to.ToCoord(cols, cols).Print();
         }
     }
 
