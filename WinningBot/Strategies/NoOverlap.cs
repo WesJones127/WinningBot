@@ -111,8 +111,6 @@ namespace WinningBot.Strategies
                 return;
 
             List<Move> newMoves = new List<Move>();
-            int botCount = botsToMove.Count;
-
 
             if (botsToMove.Count <= 3)
             {

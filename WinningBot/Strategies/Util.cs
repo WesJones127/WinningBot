@@ -20,7 +20,9 @@ namespace WinningBot.Strategies
         /// <param name="text"></param>
         public static void Log(string player, string text)
         {
+#if DEBUG
             Debug.WriteLine(player.ToUpper() + " : " + text);
+#endif
         }
 
         public static void ParseGrid(ref Game game)

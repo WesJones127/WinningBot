@@ -28,9 +28,8 @@ namespace WinningBot.Controllers
 
             try
             {
-                Debug.WriteLine("MOVE: " + (game.state.turnsElapsed + 1) + " ----- PLAYER: " + game.player);
-                if(game.gridData.playerCoords.Count >= 1)
-               moves = strat.getMoves(game);
+                if (game.gridData.playerCoords.Count >= 1)
+                    moves = strat.getMoves(game);
             }
             catch (Exception ex)
             {
@@ -42,8 +41,8 @@ namespace WinningBot.Controllers
             {
                 Util.Log(game.player, move.Print(game.state.cols));
             }
-            JsonResult result = Json(moves);
-            return result;
+
+            return Json(moves);
         }
     }
 }
