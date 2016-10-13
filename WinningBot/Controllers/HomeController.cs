@@ -37,7 +37,8 @@ namespace WinningBot.Controllers
                 Debug.WriteLine(ex.Message);
             }
 
-            return Json(moves);
+            JsonResult result = Json(moves);
+            return result;
         }
     }
 }

@@ -135,6 +135,8 @@
   <ItemGroup>
     <Content Include="packages.config" />
     <None Include="Project_Readme.html" />
+    <None Include="Properties\PublishProfiles\wes-bot - FTP.pubxml" />
+    <None Include="Properties\PublishProfiles\wes-bot - Web Deploy.pubxml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

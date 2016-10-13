@@ -27,8 +27,10 @@ namespace WinningBot.Strategies
             {
                 game.gridData.energy = game.state.p1.energy;
                 game.gridData.spawnPoint = game.state.p1.spawn.ToCoord(game.state.rows, game.state.cols);
+                game.gridData.spawnDisabled = game.state.p1.spawnDisabled;
                 game.gridData.enemyEnergy = game.state.p2.energy;
                 game.gridData.enemySpawn = game.state.p2.spawn.ToCoord(game.state.rows, game.state.cols);
+                game.gridData.enemySpawnDisabled = game.state.p2.spawnDisabled;
                 game.gridData.playerCoords = GetPoints(game, "r");
                 game.gridData.enemyCoords = GetPoints(game, "b");
             }
@@ -36,8 +38,10 @@ namespace WinningBot.Strategies
             {
                 game.gridData.energy = game.state.p2.energy;
                 game.gridData.spawnPoint = game.state.p2.spawn.ToCoord(game.state.rows, game.state.cols);
+                game.gridData.spawnDisabled = game.state.p2.spawnDisabled;
                 game.gridData.enemyEnergy = game.state.p1.energy;
                 game.gridData.enemySpawn = game.state.p1.spawn.ToCoord(game.state.rows, game.state.cols);
+                game.gridData.enemySpawnDisabled = game.state.p1.spawnDisabled;
                 game.gridData.playerCoords = GetPoints(game, "b");
                 game.gridData.enemyCoords = GetPoints(game, "r");
             }
@@ -173,19 +177,16 @@ namespace WinningBot.Strategies
             Coord destination = null;
 
             if (from.X > to.X)
-                destination = new Coord(from.X - 1, from.Y);
-            // adjacentCoords.Sort((c1, c2) => c1.X.CompareTo(c2.X));
+                destination = adjacentCoords.FirstOrDefault(c => c.X < from.X);
+            
             else if (from.X < to.X)
-                destination = new Coord(from.X + 1, from.Y);
-            // adjacentCoords.Sort((c1, c2) => c2.X.CompareTo(c1.X));
+                destination = adjacentCoords.FirstOrDefault(c => c.X > from.X);
+            
             else if (from.Y > to.Y)
-                destination = new Coord(from.X, from.Y - 1);
-            // adjacentCoords.Sort((c1, c2) => c1.Y.CompareTo(c2.Y));
+                destination = adjacentCoords.FirstOrDefault(c => c.Y < from.Y);
             else if (from.Y < to.Y)
-                destination = new Coord(from.X, from.Y + 1);
-            // adjacentCoords.Sort((c1, c2) => c2.Y.CompareTo(c1.Y));
+                destination = adjacentCoords.FirstOrDefault(c => c.Y > from.Y);
 
-            //Coord destination = adjacentCoords.First();
             if (destination == null)
             {
                 Log(game.player, "destination = null");
@@ -312,12 +313,17 @@ namespace WinningBot.Strategies
             List<Move> moves = new List<Move>();
 
             Coord spawnPoint = game.gridData.spawnPoint;
-            attemptGuardBotMove(spawnPoint, game, botsToMove, coordsToAvoid, moves, false);
+          //  attemptGuardBotMove(spawnPoint, game, botsToMove, coordsToAvoid, moves, false);
 
             Coord guardSpot1 = (game.player == "r") ?
                 spawnPoint.AdjacentCoord(Direction.DOWN_RIGHT) :
                 spawnPoint.AdjacentCoord(Direction.UP_LEFT);
             attemptGuardBotMove(guardSpot1, game, botsToMove, coordsToAvoid, moves, true);
+
+            Coord guardSpot2 = (game.player == "r") ?
+                spawnPoint.AdjacentCoord(Direction.DOWN_LEFT) :
+                spawnPoint.AdjacentCoord(Direction.UP_RIGHT);
+            attemptGuardBotMove(guardSpot2, game, botsToMove, coordsToAvoid, moves, true);
 
             return moves;
         }
@@ -369,12 +375,10 @@ namespace WinningBot.Strategies
                 {
                     moves.Add(move);
                 }
-                else
-                {
                     // remove the chosen guard bot from the list of bots to move, even if we didn't move it
                     // if it was already on the guard spot, then we don't want to move it again
                     botsToMove.RemoveAll(c => c.SameAs(bot));
-                }
+                
             }
         }
 

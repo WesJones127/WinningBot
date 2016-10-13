@@ -23,6 +23,7 @@ bin/
 obj/
 *.suo
 *.user
+*.pubxml
 
 # =========================
 # Operating System Files

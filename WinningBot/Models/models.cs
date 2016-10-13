@@ -34,14 +34,17 @@ namespace WinningBot.Models
     {
         public int energy { get; set; }
         public int spawn { get; set; }
+        public bool spawnDisabled { get; set; }
     }
 
     public class GridData
     {
         public int energy { get; set; }
         public Coord spawnPoint { get; set; }
+        public bool spawnDisabled { get; set; }
         public int enemyEnergy { get; set; }
         public Coord enemySpawn { get; set; }
+        public bool enemySpawnDisabled { get; set; }
         public List<Coord> playerCoords { get; set; }
         public List<Coord> enemyCoords { get; set; }
         public List<Coord> energyCoords { get; set; }
